@@ -6,6 +6,8 @@
 #include <QTextBlock>
 #include <QPushButton>
 #include <QShortcut>
+#include <QToolTip>
+#include <QHelpEvent>
 
 namespace memu8086::ui {
 
@@ -32,15 +34,20 @@ void EditorPanel::setup_editor() {
     editor->setLineWrapMode(QPlainTextEdit::NoWrap);
     QFontMetrics metrics(editor->font());
     editor->setTabStopDistance(metrics.horizontalAdvance(' ') * 4);
+    editor->setStyleSheet(QStringLiteral("QPlainTextEdit { selection-background-color: %1; selection-color: #FFFFFF; }")
+                          .arg(Theme::Color::ACCENT));
     
     highlighter = new AsmHighlighter(editor->document());
-    gutter = new LineNumberArea(this);
+    gutter = new LineNumberArea(this, editor);
 
     connect(editor, &QPlainTextEdit::blockCountChanged, this, &EditorPanel::update_gutter_width);
     connect(editor, &QPlainTextEdit::updateRequest, this, &EditorPanel::update_gutter);
     connect(editor, &QPlainTextEdit::cursorPositionChanged, this, &EditorPanel::highlight_current_line);
     connect(editor, &QPlainTextEdit::cursorPositionChanged, this, &EditorPanel::on_cursor_position_changed);
     connect(editor, &QPlainTextEdit::textChanged, this, &EditorPanel::on_text_changed);
+    editor->installEventFilter(this);
+    editor->viewport()->installEventFilter(this);
+    gutter->installEventFilter(this);
 
     layout->addWidget(editor);
 
@@ -95,9 +102,11 @@ bool EditorPanel::is_modified() const { return modified; }
 void EditorPanel::mark_saved() { modified = false; on_cursor_position_changed(); }
 
 void EditorPanel::set_errors(const std::vector<emu8086::assembler::AssemblerError>& errors) {
-    error_lines.clear();
-    for (const auto& err : errors) error_lines.append(err.line);
-    mark_error_lines();
+    errors_map.clear();
+    for (const auto& err : errors) {
+        errors_map[err.line] = QString::fromStdString(err.message);
+    }
+    highlight_current_line();
     gutter->update();
 }
 
@@ -113,7 +122,10 @@ int EditorPanel::gutter_width() {
 }
 
 void EditorPanel::update_gutter_width() {
-    EDITOR_HACK->setViewportMargins(gutter_width(), 0, 0, 0);
+    int gw = gutter_width();
+    EDITOR_HACK->setViewportMargins(gw, 0, 0, 0);
+    QRect cr = editor->contentsRect();
+    gutter->setGeometry(QRect(cr.left(), cr.top(), gw, cr.height()));
 }
 
 void EditorPanel::update_gutter(const QRect& rect, int dy) {
@@ -136,24 +148,25 @@ void EditorPanel::gutter_paint_event(QPaintEvent* event) {
             int line = blockNumber + 1;
             QString number = QString::number(line);
             painter.setPen(line == editor->textCursor().blockNumber() + 1 ? QColor(Theme::Color::TEXT) : QColor(Theme::Color::TEXT_MUTED));
-            painter.drawText(0, top, gutter->width() - 8, editor->fontMetrics().height(), Qt::AlignRight | Qt::AlignVCenter, number);
+            int block_height = (int)EDITOR_HACK->blockBoundingRect(block).height();
+            painter.drawText(0, top, gutter->width() - 8, block_height, Qt::AlignRight | Qt::AlignVCenter, number);
 
             if (breakpoint_lines.count(line)) {
                 painter.setBrush(QColor(Theme::Color::BREAKPOINT));
                 painter.setPen(Qt::NoPen);
-                painter.drawEllipse(QPoint(8, top + editor->fontMetrics().height() / 2), 4, 4);
+                painter.drawEllipse(QPoint(8, top + block_height / 2), 4, 4);
             }
             if (line == exec_line) {
                 QPolygon poly;
-                int y_c = top + editor->fontMetrics().height() / 2;
+                int y_c = top + block_height / 2;
                 poly << QPoint(4, y_c - 4) << QPoint(12, y_c) << QPoint(4, y_c + 4);
                 painter.setBrush(QColor(Theme::Color::WARNING));
                 painter.setPen(Qt::NoPen);
                 painter.drawPolygon(poly);
             }
-            if (error_lines.contains(line)) {
+            if (errors_map.contains(line)) {
                 painter.setPen(QPen(QColor(Theme::Color::ERROR), 2));
-                int y_c = top + editor->fontMetrics().height() / 2;
+                int y_c = top + block_height / 2;
                 painter.drawLine(4, y_c - 3, 10, y_c + 3);
                 painter.drawLine(10, y_c - 3, 4, y_c + 3);
             }
@@ -169,17 +182,62 @@ void EditorPanel::highlight_current_line() {
     QList<QTextEdit::ExtraSelection> extraSelections;
     if (!editor->isReadOnly()) {
         QTextEdit::ExtraSelection selection;
-        selection.format.setBackground(QColor("#FFFFFF08"));
+        selection.format.setBackground(QColor("#292B38"));
         selection.format.setProperty(QTextFormat::FullWidthSelection, true);
         selection.cursor = editor->textCursor();
         selection.cursor.clearSelection();
         extraSelections.append(selection);
     }
+    for (auto it = errors_map.begin(); it != errors_map.end(); ++it) {
+        int line = it.key();
+        QTextBlock block = editor->document()->findBlockByLineNumber(line - 1);
+        if (block.isValid()) {
+            QTextEdit::ExtraSelection err_sel;
+            err_sel.format.setUnderlineColor(QColor(Theme::Color::ERROR));
+            err_sel.format.setUnderlineStyle(QTextCharFormat::WaveUnderline);
+            err_sel.cursor = QTextCursor(block);
+            err_sel.cursor.clearSelection();
+            extraSelections.append(err_sel);
+        }
+    }
+
     editor->setExtraSelections(extraSelections);
-    mark_error_lines(); // re-apply errors
 }
 
 void EditorPanel::mark_error_lines() {} // Implemented via highlighter or block formats ideally, simplified for brevity here
+bool EditorPanel::eventFilter(QObject* obj, QEvent* event) {
+    if (obj == editor && event->type() == QEvent::Resize) {
+        update_gutter_width();
+    }
+    else if (event->type() == QEvent::ToolTip) {
+        QHelpEvent* helpEvent = static_cast<QHelpEvent*>(event);
+        int line = -1;
+        
+        if (obj == gutter) {
+            QTextBlock block = EDITOR_HACK->firstVisibleBlock();
+            int top = (int)EDITOR_HACK->blockBoundingGeometry(block).translated(EDITOR_HACK->contentOffset()).top();
+            while (block.isValid() && top <= gutter->height()) {
+                int bottom = top + (int)EDITOR_HACK->blockBoundingRect(block).height();
+                if (block.isVisible() && helpEvent->pos().y() >= top && helpEvent->pos().y() <= bottom) {
+                    line = block.blockNumber() + 1;
+                    break;
+                }
+                block = block.next();
+                top = bottom;
+            }
+        } else if (obj == editor->viewport()) {
+            line = editor->cursorForPosition(helpEvent->pos()).blockNumber() + 1;
+        }
+        
+        if (line != -1 && errors_map.contains(line)) {
+            QToolTip::showText(helpEvent->globalPos(), "<b>Error:</b> " + errors_map[line].toHtmlEscaped(), static_cast<QWidget*>(obj));
+            return true;
+        } else {
+            QToolTip::hideText();
+        }
+    }
+    return QWidget::eventFilter(obj, event);
+}
 void EditorPanel::on_text_changed() { modified = true; emit source_modified(); on_cursor_position_changed(); }
 void EditorPanel::show_find_replace() { find_replace_widget->show(); find_input->setFocus(); }
 void EditorPanel::find_next() { editor->find(find_input->text()); }

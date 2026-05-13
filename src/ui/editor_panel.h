@@ -6,6 +6,7 @@
 #include <QLabel>
 #include <set>
 #include <vector>
+#include <QMap>
 #include "assembler/assembler.h"
 #include "highlighter.h"
 
@@ -54,15 +55,16 @@ private:
     bool modified = false;
     int exec_line = -1;
     std::set<int> breakpoint_lines;
-    QList<int> error_lines;
+    QMap<int, QString> errors_map;
 
     void setup_editor();
     void mark_error_lines();
+    bool eventFilter(QObject* obj, QEvent* event) override;
 };
 
 class LineNumberArea : public QWidget {
 public:
-    LineNumberArea(EditorPanel* editor) : QWidget(editor), editor_panel(editor) {}
+    LineNumberArea(EditorPanel* editor, QWidget* parent) : QWidget(parent), editor_panel(editor) {}
     QSize sizeHint() const override { return QSize(editor_panel->gutter_width(), 0); }
 protected:
     void paintEvent(QPaintEvent* event) override { editor_panel->gutter_paint_event(event); }

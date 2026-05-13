@@ -1,8 +1,64 @@
 /* Dark Theme */
-QWidget {
+QMainWindow, QDialog, QDockWidget {
     background-color: #1C1E26;
+}
+QWidget {
     color: #C8C9D4;
 }
+
+/* Inner Panels & Inputs */
+QPlainTextEdit, QTableWidget, QListWidget, QLineEdit, QSpinBox, QComboBox, QAbstractScrollArea {
+    background-color: #2A2D45;
+    border: 1px solid #353A5C;
+    border-radius: 2px;
+    selection-background-color: #4A9EFF;
+    selection-color: #FFFFFF;
+}
+
+/* Dropdown Overrides */
+QComboBox {
+    padding: 3px 6px;
+}
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 20px;
+    border-left: 1px solid #353A5C;
+}
+QComboBox QAbstractItemView {
+    background-color: #2A2D45;
+    border: 1px solid #353A5C;
+    selection-background-color: #4A9EFF;
+}
+
+/* Group Boxes (e.g. Registers Panel) */
+QGroupBox {
+    border: 1px solid #353A5C;
+    border-radius: 4px;
+    margin-top: 1.5em;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 10px;
+    padding: 0 4px 0 4px;
+}
+
+/* Table Headers */
+QHeaderView::section {
+    background-color: #1C1E26;
+    color: #6B6D80;
+    border: 1px solid #353A5C;
+    padding: 4px;
+}
+QTableWidget { gridline-color: #353A5C; }
+
 QToolBar {
+    background-color: #1C1E26;
     border: none;
+    border-bottom: 1px solid #353A5C;
+}
+QDockWidget::title {
+    background-color: #22243A;
+    border-bottom: 1px solid #353A5C;
+    padding: 4px;
 }
