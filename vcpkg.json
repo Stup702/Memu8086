@@ -1,0 +1,15 @@
+{
+  "name": "memu8086",
+  "version-string": "0.1.0",
+  "dependencies": [
+    "sdl2",
+    {
+      "name": "imgui",
+      "features": [
+        "freetype"
+      ]
+    },
+    "fmt",
+    "nlohmann-json"
+  ]
+}

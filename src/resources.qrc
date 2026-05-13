@@ -1,0 +1,18 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/">
+        <file>assets/fonts/JetBrainsMono-Regular.ttf</file>
+        <file>assets/styles/dark.qss</file>
+        <file>assets/styles/light.qss</file>
+        
+        <!-- Standard emulator toolbar SVG icons -->
+        <file>assets/icons/assemble.svg</file>
+        <file>assets/icons/open.svg</file>
+        <file>assets/icons/save.svg</file>
+        <file>assets/icons/run.svg</file>
+        <file>assets/icons/pause.svg</file>
+        <file>assets/icons/stop.svg</file>
+        <file>assets/icons/step.svg</file>
+        <file>assets/icons/step_over.svg</file>
+    </qresource>
+</RCC>

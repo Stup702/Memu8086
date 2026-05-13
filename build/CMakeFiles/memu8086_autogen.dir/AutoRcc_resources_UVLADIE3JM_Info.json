@@ -1,0 +1,33 @@
+{
+	"BUILD_DIR" : "/home/stup/projects/Memu8086/build/memu8086_autogen",
+	"CMAKE_BINARY_DIR" : "/home/stup/projects/Memu8086/build",
+	"CMAKE_CURRENT_BINARY_DIR" : "/home/stup/projects/Memu8086/build",
+	"CMAKE_CURRENT_SOURCE_DIR" : "/home/stup/projects/Memu8086",
+	"CMAKE_SOURCE_DIR" : "/home/stup/projects/Memu8086",
+	"GENERATOR" : "Unix Makefiles",
+	"INCLUDE_DIR" : "/home/stup/projects/Memu8086/build/memu8086_autogen/include",
+	"INPUTS" : 
+	[
+		"/home/stup/projects/Memu8086/src/assets/fonts/JetBrainsMono-Regular.ttf",
+		"/home/stup/projects/Memu8086/src/assets/styles/dark.qss",
+		"/home/stup/projects/Memu8086/src/assets/styles/light.qss",
+		"/home/stup/projects/Memu8086/src/assets/icons/pause.svg",
+		"/home/stup/projects/Memu8086/src/assets/icons/run.svg",
+		"/home/stup/projects/Memu8086/src/assets/icons/open.svg",
+		"/home/stup/projects/Memu8086/src/assets/icons/step.svg",
+		"/home/stup/projects/Memu8086/src/assets/icons/step_over.svg",
+		"/home/stup/projects/Memu8086/src/assets/icons/assemble.svg",
+		"/home/stup/projects/Memu8086/src/assets/icons/stop.svg",
+		"/home/stup/projects/Memu8086/src/assets/icons/save.svg"
+	],
+	"LOCK_FILE" : "/home/stup/projects/Memu8086/build/CMakeFiles/memu8086_autogen.dir/AutoRcc_resources_UVLADIE3JM_Lock.lock",
+	"MULTI_CONFIG" : false,
+	"OPTIONS" : [ "-name", "resources" ],
+	"OUTPUT_CHECKSUM" : "UVLADIE3JM",
+	"OUTPUT_NAME" : "qrc_resources.cpp",
+	"RCC_EXECUTABLE" : "/usr/lib/qt6/libexec/rcc",
+	"RCC_LIST_OPTIONS" : [ "--list" ],
+	"SETTINGS_FILE" : "/home/stup/projects/Memu8086/build/CMakeFiles/memu8086_autogen.dir/AutoRcc_resources_UVLADIE3JM_Used.txt",
+	"SOURCE" : "/home/stup/projects/Memu8086/src/resources.qrc",
+	"VERBOSITY" : 0
+}

@@ -1,0 +1,5 @@
+/home/stup/projects/Memu8086/build/CMakeFiles/memu8086.dir
+/home/stup/projects/Memu8086/build/CMakeFiles/edit_cache.dir
+/home/stup/projects/Memu8086/build/CMakeFiles/rebuild_cache.dir
+/home/stup/projects/Memu8086/build/CMakeFiles/memu8086_autogen_timestamp_deps.dir
+/home/stup/projects/Memu8086/build/CMakeFiles/memu8086_autogen.dir
