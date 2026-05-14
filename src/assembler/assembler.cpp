@@ -372,28 +372,20 @@ void encode_instruction(const std::string& label, const std::string& mnemonic, c
         return;
     }
 
-    if (mnemonic == "LEA") {
-        if (op1.type == Operand::REG16 && op2.type == Operand::MEM) {
-            emit8(code, 0x8D);
-            emit_modrm(code, op2.mod, op1.val, op2.rm, op2.disp);
+    if (mnemonic == "LEA" || mnemonic == "LDS" || mnemonic == "LES") {
+        uint8_t opc = (mnemonic == "LEA") ? 0x8D : (mnemonic == "LDS" ? 0xC5 : 0xC4);
+        if (op1.type == Operand::REG16) {
+            if (op2.type == Operand::MEM) {
+                emit8(code, opc);
+                emit_modrm(code, op2.mod, op1.val, op2.rm, op2.disp);
+                return;
+            } else if (op2.type == Operand::IMM) {
+                emit8(code, opc);
+                emit_modrm(code, 0, op1.val, 6, op2.val);
+                return;
+            }
         }
-        return;
-    }
-
-    if (mnemonic == "LDS") {
-        if (op1.type == Operand::REG16 && op2.type == Operand::MEM) {
-            emit8(code, 0xC5);
-            emit_modrm(code, op2.mod, op1.val, op2.rm, op2.disp);
-        }
-        return;
-    }
-
-    if (mnemonic == "LES") {
-        if (op1.type == Operand::REG16 && op2.type == Operand::MEM) {
-            emit8(code, 0xC4);
-            emit_modrm(code, op2.mod, op1.val, op2.rm, op2.disp);
-        }
-        return;
+        // Fall through to error
     }
 
     if (mnemonic == "TEST") {

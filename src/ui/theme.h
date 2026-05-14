@@ -51,6 +51,7 @@ namespace Theme {
         int var_w = 600, var_h = 320;
         int ed_h = 550, mem_h = 250;
         int stack_h = 250;
+        int console_h = 250;
     };
     inline LayoutConfig layout;
 

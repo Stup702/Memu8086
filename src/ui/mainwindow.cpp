@@ -56,18 +56,20 @@ public:
                 if (auto* mainWin = qobject_cast<QMainWindow*>(dock->window())) {
                     QTimer::singleShot(50, mainWin, [mainWin]() {
                         auto docks = mainWin->findChildren<QDockWidget*>();
-                        QDockWidget *de = nullptr, *dv = nullptr, *dr = nullptr, *ds = nullptr, *dm = nullptr;
+                        QDockWidget *de = nullptr, *dv = nullptr, *dr = nullptr, *ds = nullptr, *dm = nullptr, *dc = nullptr;
                         for (auto* d : docks) {
                             if (d->objectName() == "dock_editor") de = d;
                             else if (d->objectName() == "dock_variables") dv = d;
                             else if (d->objectName() == "dock_registers") dr = d;
                             else if (d->objectName() == "dock_stack") ds = d;
                             else if (d->objectName() == "dock_memory") dm = d;
+                            else if (d->objectName() == "dock_console") dc = d;
                         }
                         if (dr && de) mainWin->resizeDocks({dr, de}, {Theme::layout.reg_w, Theme::layout.ed_w}, Qt::Horizontal);
                         if (de && dv) mainWin->resizeDocks({de, dv}, {Theme::layout.var_w, Theme::layout.var_h}, Qt::Horizontal);
                         if (de && dm) mainWin->resizeDocks({de, dm}, {Theme::layout.ed_h, Theme::layout.mem_h}, Qt::Vertical);
                         if (dv && ds) mainWin->resizeDocks({dv, ds}, {Theme::layout.ed_h, Theme::layout.stack_h}, Qt::Vertical);
+                        if (dr && dc) mainWin->resizeDocks({dr, dc}, {Theme::layout.ed_h, Theme::layout.console_h}, Qt::Vertical);
                     });
                 }
             });
@@ -211,17 +213,6 @@ MainWindow::MainWindow(emu8086::core::CPU& cpu, emu8086::assembler::Assembler& a
         if (s.contains("windowState")) restoreState(s.value("windowState").toByteArray());
     } else {
         reset_dock_layout();
-        
-        // Position the floating console window at the bottom right initially
-        QTimer::singleShot(100, this, [this]() {
-            if (dock_console->isFloating()) {
-                QRect screen = this->geometry();
-                int cx = qMax(screen.left() + 20, screen.right() - dock_console->width() - 40);
-                int cy = qMax(screen.top() + 20, screen.bottom() - dock_console->height() - 40);
-                dock_console->move(cx, cy);
-                dock_console->raise();
-            }
-        });
     }
 
     // Ensure all docks are shown
@@ -273,7 +264,7 @@ void MainWindow::setup_dock_panels() {
     dock_memory->setObjectName("dock_memory");
     
     dock_console = new QDockWidget("Console", this);
-    dock_console->setWidget(new DockContentWrapper(console_panel, dock_console, false));
+    dock_console->setWidget(new DockContentWrapper(console_panel, dock_console));
     dock_console->setTitleBarWidget(new TextTitleBar("Console", dock_console));
     dock_console->setObjectName("dock_console");
 }
@@ -291,9 +282,9 @@ void MainWindow::reset_dock_layout() {
     splitDockWidget(dock_editor, dock_variables, Qt::Horizontal);
     splitDockWidget(dock_editor, dock_memory, Qt::Vertical);
     splitDockWidget(dock_variables, dock_stack, Qt::Vertical);
+    splitDockWidget(dock_registers, dock_console, Qt::Vertical);
 
-    addDockWidget(Qt::BottomDockWidgetArea, dock_console);
-    dock_console->setFloating(true); // Undock by default to prevent clutter
+    dock_console->setFloating(false); // Dock by default
 
     // Calling removeDockWidget() implicitly hides widgets, so we must show them again
     for (QDockWidget* d : {dock_editor, dock_variables, dock_registers,
@@ -307,6 +298,7 @@ void MainWindow::reset_dock_layout() {
         resizeDocks({dock_editor, dock_variables}, {Theme::layout.var_w, Theme::layout.var_h}, Qt::Horizontal);
         resizeDocks({dock_editor, dock_memory}, {Theme::layout.ed_h, Theme::layout.mem_h}, Qt::Vertical);
         resizeDocks({dock_variables, dock_stack}, {Theme::layout.ed_h, Theme::layout.stack_h}, Qt::Vertical);
+        resizeDocks({dock_registers, dock_console}, {Theme::layout.ed_h, Theme::layout.console_h}, Qt::Vertical);
     });
 }
 
