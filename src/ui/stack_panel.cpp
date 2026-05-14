@@ -45,11 +45,13 @@ StackPanel::StackPanel(QWidget* parent) : QWidget(parent) {
     table->setHorizontalHeaderLabels({"Offset", "Address", "Value (hex)", "Value (dec)", "Note"});
     table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     table->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
     table->horizontalHeader()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
     table->verticalHeader()->setVisible(false);
     table->setAlternatingRowColors(true);
     table->setSelectionMode(QAbstractItemView::SingleSelection);
     table->setSelectionBehavior(QAbstractItemView::SelectRows);
+    table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     table->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(table, &QTableWidget::customContextMenuRequested, this, &StackPanel::show_context_menu);
     left_layout->addWidget(table);

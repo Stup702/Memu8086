@@ -74,6 +74,9 @@ void RegistersPanel::setup_ui() {
     table->setShowGrid(false);
     table->setSelectionMode(QAbstractItemView::NoSelection);
     table->setFocusPolicy(Qt::NoFocus);
+    table->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    table->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     
     QStringList regs = {"AX", "BX", "CX", "DX", "SI", "DI", "SP", "BP"};
     for (int i = 0; i < 8; ++i) {
@@ -96,6 +99,11 @@ void RegistersPanel::setup_ui() {
         reg_bin_items[regs[i]]->setFont(Theme::mono_font(12));
         table->setItem(i, 3, reg_bin_items[regs[i]]);
     }
+
+    // Dynamically calculate exact required height to prevent clipping on any OS/DPI scaling
+    int exact_height = table->horizontalHeader()->sizeHint().height() + (8 * 28) + 2;
+    table->setFixedHeight(exact_height);
+
     lay_gpr->addWidget(table);
     layout->addWidget(grp_gpr);
     

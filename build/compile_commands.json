@@ -1,134 +1,152 @@
 [
 {
   "directory": "/home/stup/projects/Memu8086/build",
-  "command": "/usr/bin/c++ -DFMT_SHARED -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/memu8086_autogen/mocs_compilation.cpp.o -c /home/stup/projects/Memu8086/build/memu8086_autogen/mocs_compilation.cpp",
+  "command": "/usr/bin/c++ -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/memu8086_autogen/mocs_compilation.cpp.o -c /home/stup/projects/Memu8086/build/memu8086_autogen/mocs_compilation.cpp",
   "file": "/home/stup/projects/Memu8086/build/memu8086_autogen/mocs_compilation.cpp",
   "output": "CMakeFiles/memu8086.dir/memu8086_autogen/mocs_compilation.cpp.o"
 },
 {
   "directory": "/home/stup/projects/Memu8086/build",
-  "command": "/usr/bin/c++ -DFMT_SHARED -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/main.cpp.o -c /home/stup/projects/Memu8086/src/main.cpp",
+  "command": "/usr/bin/c++ -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/main.cpp.o -c /home/stup/projects/Memu8086/src/main.cpp",
   "file": "/home/stup/projects/Memu8086/src/main.cpp",
   "output": "CMakeFiles/memu8086.dir/src/main.cpp.o"
 },
 {
   "directory": "/home/stup/projects/Memu8086/build",
-  "command": "/usr/bin/c++ -DFMT_SHARED -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/mainwindow.cpp.o -c /home/stup/projects/Memu8086/src/ui/mainwindow.cpp",
+  "command": "/usr/bin/c++ -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/mainwindow.cpp.o -c /home/stup/projects/Memu8086/src/ui/mainwindow.cpp",
   "file": "/home/stup/projects/Memu8086/src/ui/mainwindow.cpp",
   "output": "CMakeFiles/memu8086.dir/src/ui/mainwindow.cpp.o"
 },
 {
   "directory": "/home/stup/projects/Memu8086/build",
-  "command": "/usr/bin/c++ -DFMT_SHARED -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/theme.cpp.o -c /home/stup/projects/Memu8086/src/ui/theme.cpp",
+  "command": "/usr/bin/c++ -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/theme.cpp.o -c /home/stup/projects/Memu8086/src/ui/theme.cpp",
   "file": "/home/stup/projects/Memu8086/src/ui/theme.cpp",
   "output": "CMakeFiles/memu8086.dir/src/ui/theme.cpp.o"
 },
 {
   "directory": "/home/stup/projects/Memu8086/build",
-  "command": "/usr/bin/c++ -DFMT_SHARED -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/editor_panel.cpp.o -c /home/stup/projects/Memu8086/src/ui/editor_panel.cpp",
+  "command": "/usr/bin/c++ -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/editor_panel.cpp.o -c /home/stup/projects/Memu8086/src/ui/editor_panel.cpp",
   "file": "/home/stup/projects/Memu8086/src/ui/editor_panel.cpp",
   "output": "CMakeFiles/memu8086.dir/src/ui/editor_panel.cpp.o"
 },
 {
   "directory": "/home/stup/projects/Memu8086/build",
-  "command": "/usr/bin/c++ -DFMT_SHARED -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/highlighter.cpp.o -c /home/stup/projects/Memu8086/src/ui/highlighter.cpp",
+  "command": "/usr/bin/c++ -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/highlighter.cpp.o -c /home/stup/projects/Memu8086/src/ui/highlighter.cpp",
   "file": "/home/stup/projects/Memu8086/src/ui/highlighter.cpp",
   "output": "CMakeFiles/memu8086.dir/src/ui/highlighter.cpp.o"
 },
 {
   "directory": "/home/stup/projects/Memu8086/build",
-  "command": "/usr/bin/c++ -DFMT_SHARED -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/registers_panel.cpp.o -c /home/stup/projects/Memu8086/src/ui/registers_panel.cpp",
+  "command": "/usr/bin/c++ -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/registers_panel.cpp.o -c /home/stup/projects/Memu8086/src/ui/registers_panel.cpp",
   "file": "/home/stup/projects/Memu8086/src/ui/registers_panel.cpp",
   "output": "CMakeFiles/memu8086.dir/src/ui/registers_panel.cpp.o"
 },
 {
   "directory": "/home/stup/projects/Memu8086/build",
-  "command": "/usr/bin/c++ -DFMT_SHARED -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/memory_panel.cpp.o -c /home/stup/projects/Memu8086/src/ui/memory_panel.cpp",
+  "command": "/usr/bin/c++ -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/memory_panel.cpp.o -c /home/stup/projects/Memu8086/src/ui/memory_panel.cpp",
   "file": "/home/stup/projects/Memu8086/src/ui/memory_panel.cpp",
   "output": "CMakeFiles/memu8086.dir/src/ui/memory_panel.cpp.o"
 },
 {
   "directory": "/home/stup/projects/Memu8086/build",
-  "command": "/usr/bin/c++ -DFMT_SHARED -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/stack_panel.cpp.o -c /home/stup/projects/Memu8086/src/ui/stack_panel.cpp",
+  "command": "/usr/bin/c++ -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/stack_panel.cpp.o -c /home/stup/projects/Memu8086/src/ui/stack_panel.cpp",
   "file": "/home/stup/projects/Memu8086/src/ui/stack_panel.cpp",
   "output": "CMakeFiles/memu8086.dir/src/ui/stack_panel.cpp.o"
 },
 {
   "directory": "/home/stup/projects/Memu8086/build",
-  "command": "/usr/bin/c++ -DFMT_SHARED -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/variables_panel.cpp.o -c /home/stup/projects/Memu8086/src/ui/variables_panel.cpp",
+  "command": "/usr/bin/c++ -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/variables_panel.cpp.o -c /home/stup/projects/Memu8086/src/ui/variables_panel.cpp",
   "file": "/home/stup/projects/Memu8086/src/ui/variables_panel.cpp",
   "output": "CMakeFiles/memu8086.dir/src/ui/variables_panel.cpp.o"
 },
 {
   "directory": "/home/stup/projects/Memu8086/build",
-  "command": "/usr/bin/c++ -DFMT_SHARED -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/console_panel_widget.cpp.o -c /home/stup/projects/Memu8086/src/ui/console_panel_widget.cpp",
+  "command": "/usr/bin/c++ -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/console_panel_widget.cpp.o -c /home/stup/projects/Memu8086/src/ui/console_panel_widget.cpp",
   "file": "/home/stup/projects/Memu8086/src/ui/console_panel_widget.cpp",
   "output": "CMakeFiles/memu8086.dir/src/ui/console_panel_widget.cpp.o"
 },
 {
   "directory": "/home/stup/projects/Memu8086/build",
-  "command": "/usr/bin/c++ -DFMT_SHARED -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/toolbar.cpp.o -c /home/stup/projects/Memu8086/src/ui/toolbar.cpp",
+  "command": "/usr/bin/c++ -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/toolbar.cpp.o -c /home/stup/projects/Memu8086/src/ui/toolbar.cpp",
   "file": "/home/stup/projects/Memu8086/src/ui/toolbar.cpp",
   "output": "CMakeFiles/memu8086.dir/src/ui/toolbar.cpp.o"
 },
 {
   "directory": "/home/stup/projects/Memu8086/build",
-  "command": "/usr/bin/c++ -DFMT_SHARED -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/settings_dialog.cpp.o -c /home/stup/projects/Memu8086/src/ui/settings_dialog.cpp",
+  "command": "/usr/bin/c++ -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/settings_dialog.cpp.o -c /home/stup/projects/Memu8086/src/ui/settings_dialog.cpp",
   "file": "/home/stup/projects/Memu8086/src/ui/settings_dialog.cpp",
   "output": "CMakeFiles/memu8086.dir/src/ui/settings_dialog.cpp.o"
 },
 {
   "directory": "/home/stup/projects/Memu8086/build",
-  "command": "/usr/bin/c++ -DFMT_SHARED -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/examples_dialog.cpp.o -c /home/stup/projects/Memu8086/src/ui/examples_dialog.cpp",
+  "command": "/usr/bin/c++ -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/ui/examples_dialog.cpp.o -c /home/stup/projects/Memu8086/src/ui/examples_dialog.cpp",
   "file": "/home/stup/projects/Memu8086/src/ui/examples_dialog.cpp",
   "output": "CMakeFiles/memu8086.dir/src/ui/examples_dialog.cpp.o"
 },
 {
   "directory": "/home/stup/projects/Memu8086/build",
-  "command": "/usr/bin/c++ -DFMT_SHARED -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/core/cpu.cpp.o -c /home/stup/projects/Memu8086/src/core/cpu.cpp",
+  "command": "/usr/bin/c++ -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/core/cpu.cpp.o -c /home/stup/projects/Memu8086/src/core/cpu.cpp",
   "file": "/home/stup/projects/Memu8086/src/core/cpu.cpp",
   "output": "CMakeFiles/memu8086.dir/src/core/cpu.cpp.o"
 },
 {
   "directory": "/home/stup/projects/Memu8086/build",
-  "command": "/usr/bin/c++ -DFMT_SHARED -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/core/cpu_exec.cpp.o -c /home/stup/projects/Memu8086/src/core/cpu_exec.cpp",
+  "command": "/usr/bin/c++ -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/core/cpu_exec.cpp.o -c /home/stup/projects/Memu8086/src/core/cpu_exec.cpp",
   "file": "/home/stup/projects/Memu8086/src/core/cpu_exec.cpp",
   "output": "CMakeFiles/memu8086.dir/src/core/cpu_exec.cpp.o"
 },
 {
   "directory": "/home/stup/projects/Memu8086/build",
-  "command": "/usr/bin/c++ -DFMT_SHARED -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/core/emulator.cpp.o -c /home/stup/projects/Memu8086/src/core/emulator.cpp",
+  "command": "/usr/bin/c++ -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/core/emulator.cpp.o -c /home/stup/projects/Memu8086/src/core/emulator.cpp",
   "file": "/home/stup/projects/Memu8086/src/core/emulator.cpp",
   "output": "CMakeFiles/memu8086.dir/src/core/emulator.cpp.o"
 },
 {
   "directory": "/home/stup/projects/Memu8086/build",
-  "command": "/usr/bin/c++ -DFMT_SHARED -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/core/interrupts.cpp.o -c /home/stup/projects/Memu8086/src/core/interrupts.cpp",
+  "command": "/usr/bin/c++ -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/core/interrupts.cpp.o -c /home/stup/projects/Memu8086/src/core/interrupts.cpp",
   "file": "/home/stup/projects/Memu8086/src/core/interrupts.cpp",
   "output": "CMakeFiles/memu8086.dir/src/core/interrupts.cpp.o"
 },
 {
   "directory": "/home/stup/projects/Memu8086/build",
-  "command": "/usr/bin/c++ -DFMT_SHARED -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/core/disassembler.cpp.o -c /home/stup/projects/Memu8086/src/core/disassembler.cpp",
+  "command": "/usr/bin/c++ -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/core/disassembler.cpp.o -c /home/stup/projects/Memu8086/src/core/disassembler.cpp",
   "file": "/home/stup/projects/Memu8086/src/core/disassembler.cpp",
   "output": "CMakeFiles/memu8086.dir/src/core/disassembler.cpp.o"
 },
 {
   "directory": "/home/stup/projects/Memu8086/build",
-  "command": "/usr/bin/c++ -DFMT_SHARED -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/core/debugger.cpp.o -c /home/stup/projects/Memu8086/src/core/debugger.cpp",
+  "command": "/usr/bin/c++ -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/core/debugger.cpp.o -c /home/stup/projects/Memu8086/src/core/debugger.cpp",
   "file": "/home/stup/projects/Memu8086/src/core/debugger.cpp",
   "output": "CMakeFiles/memu8086.dir/src/core/debugger.cpp.o"
 },
 {
   "directory": "/home/stup/projects/Memu8086/build",
-  "command": "/usr/bin/c++ -DFMT_SHARED -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/assembler/assembler.cpp.o -c /home/stup/projects/Memu8086/src/assembler/assembler.cpp",
+  "command": "/usr/bin/c++ -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/src/assembler/assembler.cpp.o -c /home/stup/projects/Memu8086/src/assembler/assembler.cpp",
   "file": "/home/stup/projects/Memu8086/src/assembler/assembler.cpp",
   "output": "CMakeFiles/memu8086.dir/src/assembler/assembler.cpp.o"
 },
 {
   "directory": "/home/stup/projects/Memu8086/build",
-  "command": "/usr/bin/c++ -DFMT_SHARED -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/memu8086_autogen/UVLADIE3JM/qrc_resources.cpp.o -c /home/stup/projects/Memu8086/build/memu8086_autogen/UVLADIE3JM/qrc_resources.cpp",
+  "command": "/usr/bin/c++ -DMEMU8086_VERSION=\\\"0.1.0\\\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -I/home/stup/projects/Memu8086/build/memu8086_autogen/include -I/home/stup/projects/Memu8086/src -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -std=c++17 -Wall -Wextra -fPIC -o CMakeFiles/memu8086.dir/memu8086_autogen/UVLADIE3JM/qrc_resources.cpp.o -c /home/stup/projects/Memu8086/build/memu8086_autogen/UVLADIE3JM/qrc_resources.cpp",
   "file": "/home/stup/projects/Memu8086/build/memu8086_autogen/UVLADIE3JM/qrc_resources.cpp",
   "output": "CMakeFiles/memu8086.dir/memu8086_autogen/UVLADIE3JM/qrc_resources.cpp.o"
+},
+{
+  "directory": "/home/stup/projects/Memu8086/build/_deps/fmt-build",
+  "command": "/usr/bin/c++  -I/home/stup/projects/Memu8086/build/_deps/fmt-build/fmt_autogen/include -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -std=c++17 -o CMakeFiles/fmt.dir/fmt_autogen/mocs_compilation.cpp.o -c /home/stup/projects/Memu8086/build/_deps/fmt-build/fmt_autogen/mocs_compilation.cpp",
+  "file": "/home/stup/projects/Memu8086/build/_deps/fmt-build/fmt_autogen/mocs_compilation.cpp",
+  "output": "_deps/fmt-build/CMakeFiles/fmt.dir/fmt_autogen/mocs_compilation.cpp.o"
+},
+{
+  "directory": "/home/stup/projects/Memu8086/build/_deps/fmt-build",
+  "command": "/usr/bin/c++  -I/home/stup/projects/Memu8086/build/_deps/fmt-build/fmt_autogen/include -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -std=c++17 -o CMakeFiles/fmt.dir/src/format.cc.o -c /home/stup/projects/Memu8086/build/_deps/fmt-src/src/format.cc",
+  "file": "/home/stup/projects/Memu8086/build/_deps/fmt-src/src/format.cc",
+  "output": "_deps/fmt-build/CMakeFiles/fmt.dir/src/format.cc.o"
+},
+{
+  "directory": "/home/stup/projects/Memu8086/build/_deps/fmt-build",
+  "command": "/usr/bin/c++  -I/home/stup/projects/Memu8086/build/_deps/fmt-build/fmt_autogen/include -I/home/stup/projects/Memu8086/build/_deps/fmt-src/include -std=c++17 -o CMakeFiles/fmt.dir/src/os.cc.o -c /home/stup/projects/Memu8086/build/_deps/fmt-src/src/os.cc",
+  "file": "/home/stup/projects/Memu8086/build/_deps/fmt-src/src/os.cc",
+  "output": "_deps/fmt-build/CMakeFiles/fmt.dir/src/os.cc.o"
 }
 ]

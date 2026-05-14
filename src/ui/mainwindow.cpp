@@ -23,6 +23,8 @@
 #include <QAction>
 #include <QKeySequence>
 #include <QFileInfo>
+#include <QWindow>
+#include <QTimer>
 
 namespace memu8086::ui {
 
@@ -32,7 +34,7 @@ public:
         QVBoxLayout* layout = new QVBoxLayout(this);
         layout->setContentsMargins(0, 0, 0, 0);
         layout->setSpacing(0);
-        layout->addWidget(content, 1); // 1 = Stretch to fill available space
+        layout->addWidget(content);
 
         if (enable_redock_btn) {
             QPushButton* btn_redock = new QPushButton("⊞ Redock to Main Window", this);
@@ -46,23 +48,47 @@ public:
             btn_redock->hide(); // Hide initially while docked
 
             connect(dock, &QDockWidget::topLevelChanged, btn_redock, &QWidget::setVisible);
-            connect(btn_redock, &QPushButton::clicked, dock, [dock]() { dock->setFloating(false); });
+            connect(btn_redock, &QPushButton::clicked, dock, [dock]() {
+                dock->setFloating(false);
+                
+                // Re-apply default layout sizes after the window has successfully re-docked
+                if (auto* mainWin = qobject_cast<QMainWindow*>(dock->window())) {
+                    QTimer::singleShot(50, mainWin, [mainWin]() {
+                        auto docks = mainWin->findChildren<QDockWidget*>();
+                        QDockWidget *de = nullptr, *dv = nullptr, *dr = nullptr, *ds = nullptr, *dm = nullptr;
+                        for (auto* d : docks) {
+                            if (d->objectName() == "dock_editor") de = d;
+                            else if (d->objectName() == "dock_variables") dv = d;
+                            else if (d->objectName() == "dock_registers") dr = d;
+                            else if (d->objectName() == "dock_stack") ds = d;
+                            else if (d->objectName() == "dock_memory") dm = d;
+                        }
+                        if (de && dr) mainWin->resizeDocks({de, dr}, {450, 550}, Qt::Horizontal);
+                        if (de && dv) mainWin->resizeDocks({de, dv}, {500, 300}, Qt::Vertical);
+                        if (dr && dm) mainWin->resizeDocks({dr, dm}, {500, 300}, Qt::Vertical);
+                        if (dr && ds) mainWin->resizeDocks({dr, ds}, {260, 260}, Qt::Horizontal);
+                    });
+                }
+            });
         }
     }
 };
 
 class TextTitleBar : public QWidget {
+    QDockWidget* dock;
+
 public:
-    TextTitleBar(const QString& title, QDockWidget* dock) : QWidget(dock) {
+    TextTitleBar(const QString& title, QDockWidget* dock) : QWidget(dock), dock(dock) {
         setObjectName("TextTitleBar");
         setAttribute(Qt::WA_StyledBackground, true);
         
         QHBoxLayout* layout = new QHBoxLayout(this);
-        layout->setContentsMargins(10, 6, 6, 6);
+        layout->setContentsMargins(10, 4, 6, 4);
         layout->setSpacing(8);
 
         QLabel* lbl = new QLabel(title.toUpper(), this);
         lbl->setStyleSheet("font-weight: bold; letter-spacing: 1px;");
+        lbl->setAttribute(Qt::WA_TransparentForMouseEvents);
 
         QPushButton* btn_float = new QPushButton("Undock", this);
         QPushButton* btn_close = new QPushButton("Close", this);
@@ -77,16 +103,30 @@ public:
         connect(btn_float, &QPushButton::clicked, dock, [dock]() { dock->setFloating(!dock->isFloating()); });
         connect(btn_close, &QPushButton::clicked, dock, &QDockWidget::close);
 
-        connect(dock, &QDockWidget::topLevelChanged, this, [btn_float, btn_close](bool floating) {
+        connect(dock, &QDockWidget::topLevelChanged, this, [btn_float](bool floating) {
             btn_float->setVisible(!floating);
-            btn_close->setVisible(!floating);
         });
     }
+
+    QSize sizeHint() const override { return QSize(150, 40); }
+    QSize minimumSizeHint() const override { return QSize(100, 40); }
+
 protected:
-    void mousePressEvent(QMouseEvent* event) override { event->ignore(); }
-    void mouseDoubleClickEvent(QMouseEvent* event) override { event->ignore(); }
-    void mouseMoveEvent(QMouseEvent* event) override { event->ignore(); }
-    void mouseReleaseEvent(QMouseEvent* event) override { event->ignore(); }
+    void mousePressEvent(QMouseEvent* event) override {
+        if (event->button() == Qt::LeftButton && dock->isFloating()) {
+            if (QWindow* window = dock->windowHandle()) {
+                window->startSystemMove();
+                event->accept();
+                return;
+            }
+        }
+        QWidget::mousePressEvent(event);
+    }
+    
+    void mouseDoubleClickEvent(QMouseEvent* event) override {
+        dock->setFloating(!dock->isFloating());
+        QWidget::mouseDoubleClickEvent(event);
+    }
 };
 
 MainWindow::MainWindow(emu8086::core::CPU& cpu, emu8086::assembler::Assembler& asm_,
@@ -160,11 +200,14 @@ MainWindow::MainWindow(emu8086::core::CPU& cpu, emu8086::assembler::Assembler& a
     connect(tick_timer, &QTimer::timeout, this, &MainWindow::on_debugger_tick);
     tick_timer->start(16); // ~60fps
 
-      // Restore persistence settings
+    // Restore persistence settings
     QSettings s("memu8086", "memu8086");
-    if (s.contains("geometry")) restoreGeometry(s.value("geometry").toByteArray());
     
+    // Maximize window FIRST so layout ratios calculate accurately against the full screen!
+    setWindowState(Qt::WindowMaximized);
+
     if (s.value("layout_user_saved", false).toBool()) {
+        if (s.contains("geometry")) restoreGeometry(s.value("geometry").toByteArray());
         if (s.contains("windowState")) restoreState(s.value("windowState").toByteArray());
     } else {
         reset_dock_layout();
@@ -173,8 +216,8 @@ MainWindow::MainWindow(emu8086::core::CPU& cpu, emu8086::assembler::Assembler& a
         QTimer::singleShot(100, this, [this]() {
             if (dock_console->isFloating()) {
                 QRect screen = this->geometry();
-                int cx = screen.right() - dock_console->width() - 40;
-                int cy = screen.bottom() - dock_console->height() - 40;
+                int cx = qMax(screen.left() + 20, screen.right() - dock_console->width() - 40);
+                int cy = qMax(screen.top() + 20, screen.bottom() - dock_console->height() - 40);
                 dock_console->move(cx, cy);
                 dock_console->raise();
             }
@@ -243,19 +286,28 @@ void MainWindow::reset_dock_layout() {
     }
 
     addDockWidget(Qt::LeftDockWidgetArea, dock_editor);
-    splitDockWidget(dock_editor, dock_variables, Qt::Vertical);
     
-    addDockWidget(Qt::RightDockWidgetArea, dock_registers);
-    splitDockWidget(dock_registers, dock_stack, Qt::Vertical);
-    splitDockWidget(dock_stack, dock_memory, Qt::Vertical);
+    splitDockWidget(dock_editor, dock_registers, Qt::Horizontal);
+    splitDockWidget(dock_editor, dock_variables, Qt::Vertical);
+    splitDockWidget(dock_registers, dock_memory, Qt::Vertical);
+    splitDockWidget(dock_registers, dock_stack, Qt::Horizontal);
 
     addDockWidget(Qt::BottomDockWidgetArea, dock_console);
     dock_console->setFloating(true); // Undock by default to prevent clutter
 
-    // Set initial size proportions
-    resizeDocks({dock_editor, dock_registers}, {600, 300}, Qt::Horizontal);
-    resizeDocks({dock_editor, dock_variables}, {400, 200}, Qt::Vertical);
-    resizeDocks({dock_registers, dock_stack, dock_memory}, {200, 150, 150}, Qt::Vertical);
+    // Calling removeDockWidget() implicitly hides widgets, so we must show them again
+    for (QDockWidget* d : {dock_editor, dock_variables, dock_registers,
+                           dock_stack, dock_memory, dock_console}) {
+        d->show();
+    }
+
+    // Sizes MUST be applied after widgets are shown and the layout is mathematically validated!
+    QTimer::singleShot(50, this, [this]() {
+        resizeDocks({dock_editor, dock_registers}, {450, 550}, Qt::Horizontal);
+        resizeDocks({dock_editor, dock_variables}, {500, 300}, Qt::Vertical);
+        resizeDocks({dock_registers, dock_memory}, {500, 300}, Qt::Vertical);
+        resizeDocks({dock_registers, dock_stack}, {260, 260}, Qt::Horizontal);
+    });
 }
 
 void MainWindow::setup_toolbar() {
@@ -296,6 +348,7 @@ void MainWindow::setup_menu_bar() {
 
     connect(act_save_layout, &QAction::triggered, this, [this]() {
         QSettings s("memu8086", "memu8086");
+        s.setValue("geometry", saveGeometry());
         s.setValue("windowState", saveState());
         s.setValue("layout_user_saved", true);
     });
@@ -304,6 +357,7 @@ void MainWindow::setup_menu_bar() {
         reset_dock_layout();
         QSettings s("memu8086", "memu8086");
         s.setValue("layout_user_saved", false);
+        s.remove("geometry");
         s.remove("windowState");
     });
 
@@ -606,8 +660,12 @@ void MainWindow::show_examples() {
 
 void MainWindow::closeEvent(QCloseEvent* event) {
     QSettings s("memu8086", "memu8086");
-    s.setValue("geometry", saveGeometry());
-    s.setValue("windowState", saveState());
+    
+    // Only update geometry and state if the user explicitly opted into saving layouts
+    if (s.value("layout_user_saved", false).toBool()) {
+        s.setValue("geometry", saveGeometry());
+        s.setValue("windowState", saveState());
+    }
     s.setValue("lastFile", current_file);
     event->accept();
 }

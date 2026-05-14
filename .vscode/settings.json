@@ -1,3 +1,4 @@
 {
-    "cmake.sourceDirectory": "/home/stup/projects/Memu8086/tests"
+    "cmake.sourceDirectory": "/home/stup/projects/Memu8086/tests",
+    "cmake.ignoreCMakeListsMissing": true
 }

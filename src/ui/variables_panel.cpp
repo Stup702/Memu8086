@@ -39,6 +39,7 @@ VariablesPanel::VariablesPanel(QWidget* parent) : QWidget(parent) {
     table->verticalHeader()->setVisible(false);
     table->setAlternatingRowColors(true);
     table->setSelectionBehavior(QAbstractItemView::SelectRows);
+    table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     table->setContextMenuPolicy(Qt::CustomContextMenu);
     
     layout->addWidget(table);
