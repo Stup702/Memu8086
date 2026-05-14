@@ -12,10 +12,10 @@ struct ExampleProgram {
 };
 
 static const QList<ExampleProgram> EXAMPLES = {
-    {"Hello World (DOS INT 21h)", "org 100h\n\nmov dx, msg\nmov ah, 09h\nint 21h\nint 20h\n\nmsg db 'Hello, World!$'\n"},
-    {"Print Alphabet", "org 100h\n\nmov cx, 26\nmov dl, 'A'\n\nprint_loop:\nmov ah, 02h\nint 21h\ninc dl\nloop print_loop\n\nint 20h\n"},
-    {"Print Numbers 0-9", "org 100h\n\nmov cx, 10\nmov dl, '0'\n\nnum_loop:\nmov ah, 02h\nint 21h\ninc dl\nloop num_loop\n\nint 20h\n"},
-    {"Memory Copy (rep movsb)", "org 100h\n\nmov cx, 12\nmov si, src\nmov di, dst\nrep movsb\n\nmov dx, dst\nmov ah, 09h\nint 21h\nint 20h\n\nsrc db 'Copied text!$'\ndst times 13 db 0\n"}
+    {"Hello World (DOS INT 21h)", "org 100h\n\nmov dx, msg\nmov ah, 09h\nint 21h\nint 20h\n\nmsg db \"Hello, World!$\"\n"},
+    {"Print Alphabet", "org 100h\n\nmov cx, 26\nmov dl, 41h\n\nprint_loop:\nmov ah, 02h\nint 21h\ninc dl\nloop print_loop\n\nint 20h\n"},
+    {"Print Numbers 0-9", "org 100h\n\nmov cx, 10\nmov dl, 30h\n\nnum_loop:\nmov ah, 02h\nint 21h\ninc dl\nloop num_loop\n\nint 20h\n"},
+    {"Memory Copy (rep movsb)", "org 100h\n\nmov cx, 12\nmov si, src\nmov di, dst\nrep movsb\n\nmov dx, dst\nmov ah, 09h\nint 21h\nint 20h\n\nsrc db \"Copied text!$\"\ndst db 0,0,0,0,0,0,0,0,0,0,0,0,0\n"}
 };
 
 ExamplesDialog::ExamplesDialog(QWidget* parent) : QDialog(parent) {

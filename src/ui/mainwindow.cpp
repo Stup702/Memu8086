@@ -38,6 +38,9 @@ MainWindow::MainWindow(emu8086::core::CPU& cpu, emu8086::assembler::Assembler& a
     stack_panel = new StackPanel(cpu, this);
     variables_panel = new VariablesPanel(this);
     console_panel = new ConsolePanelWidget(console, this);
+    console_panel->setWindowFlags(Qt::Window);
+    console_panel->setWindowTitle("memu8086 - Console");
+    console_panel->resize(console_panel->sizeHint());
     toolbar_widget = new Toolbar(this);
 
     setup_dock_panels();
@@ -109,6 +112,7 @@ MainWindow::MainWindow(emu8086::core::CPU& cpu, emu8086::assembler::Assembler& a
     } else {
         on_new_file();
     }
+    console_panel->show();
 }
 
 void MainWindow::setup_dock_panels() {
@@ -121,10 +125,6 @@ void MainWindow::setup_dock_panels() {
     dock_variables = new QDockWidget("Variables", this);
     dock_variables->setWidget(variables_panel);
     dock_variables->setObjectName("dock_variables");
-
-    dock_console = new QDockWidget("Console", this);
-    dock_console->setWidget(console_panel);
-    dock_console->setObjectName("dock_console");
 
     dock_registers = new QDockWidget("Registers", this);
     dock_registers->setWidget(registers_panel);
@@ -145,8 +145,6 @@ void MainWindow::setup_dock_panels() {
     addDockWidget(Qt::RightDockWidgetArea, dock_registers);
     splitDockWidget(dock_registers, dock_stack, Qt::Vertical);
     splitDockWidget(dock_stack, dock_memory, Qt::Vertical);
-
-    addDockWidget(Qt::BottomDockWidgetArea, dock_console);
 }
 
 void MainWindow::setup_toolbar() {
@@ -176,10 +174,16 @@ void MainWindow::setup_menu_bar() {
     QMenu* view_menu = menuBar()->addMenu("View");
     view_menu->addAction(dock_editor->toggleViewAction());
     view_menu->addAction(dock_variables->toggleViewAction());
-    view_menu->addAction(dock_console->toggleViewAction());
     view_menu->addAction(dock_registers->toggleViewAction());
     view_menu->addAction(dock_stack->toggleViewAction());
     view_menu->addAction(dock_memory->toggleViewAction());
+    view_menu->addSeparator();
+    QAction* action_console = view_menu->addAction("Console Window");
+    connect(action_console, &QAction::triggered, this, [this]() {
+        console_panel->show();
+        console_panel->raise();
+        console_panel->activateWindow();
+    });
 
     QMenu* emu_menu = menuBar()->addMenu("Emulator");
     emu_menu->addAction("Assemble", QKeySequence(Qt::Key_F5), this, &MainWindow::on_assemble);
@@ -230,12 +234,20 @@ void MainWindow::update_recent_files_menu() {
 }
 
 void MainWindow::on_debugger_tick() {
+    static auto prev_state = DebuggerState::IDLE;
     if (dbg.get_state() == DebuggerState::RUNNING) {
         prev_snapshot = dbg.get_prev_snapshot();
         dbg.run_frame(0.016f);
         refresh_panels();
         update_ui_state();
+    } else {
+        dbg.run_frame(0.0f); // Drain any remaining IO
+        if (prev_state == DebuggerState::RUNNING) {
+            refresh_panels();
+            update_ui_state();
+        }
     }
+    prev_state = dbg.get_state();
     // Always refresh console (it might have new output)
     console_panel->refresh();
 }
