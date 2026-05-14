@@ -34,13 +34,10 @@ void EditorPanel::setup_editor() {
     editor = new QPlainTextEdit(this);
     editor->setFont(Theme::mono_font(13));
     editor->setLineWrapMode(QPlainTextEdit::NoWrap);
-    QFontMetrics metrics(editor->font());
-    editor->setTabStopDistance(metrics.horizontalAdvance(' ') * 4);
-    editor->setStyleSheet(QStringLiteral("QPlainTextEdit { selection-background-color: %1; selection-color: #FFFFFF; }")
-                          .arg(Theme::Color::ACCENT));
     
     highlighter = new AsmHighlighter(editor->document());
     gutter = new LineNumberArea(this, editor);
+    set_font_size(13); // Force initialize the fonts and inline stylesheet securely
 
     connect(editor, &QPlainTextEdit::blockCountChanged, this, &EditorPanel::update_gutter_width);
     connect(editor, &QPlainTextEdit::updateRequest, this, &EditorPanel::update_gutter);
@@ -139,6 +136,7 @@ void EditorPanel::update_gutter(const QRect& rect, int dy) {
 void EditorPanel::gutter_paint_event(QPaintEvent* event) {
     QPainter painter(gutter);
     painter.fillRect(event->rect(), QColor(Theme::Color::BG));
+    painter.setFont(gutter->font());
 
     QTextBlock block = EDITOR_HACK->firstVisibleBlock();
     int blockNumber = block.blockNumber();
@@ -230,12 +228,7 @@ bool EditorPanel::eventFilter(QObject* obj, QEvent* event) {
                 return true;
             }
             if (ke->key() == Qt::Key_0) {
-                QFont f = editor->font();
-                f.setPointSize(13); // Default font size
-                editor->setFont(f);
-                QFontMetrics metrics(f);
-                editor->setTabStopDistance(4 * metrics.horizontalAdvance(' '));
-                update_gutter_width();
+                set_font_size(13);
                 return true;
             }
         }
@@ -272,18 +265,22 @@ bool EditorPanel::eventFilter(QObject* obj, QEvent* event) {
 
 void EditorPanel::zoom(int delta) {
     QFont f = editor->font();
-    int new_size = qMax(8, f.pointSize() + delta);
-    f.setPointSize(new_size);
-    editor->setFont(f);
-    QFontMetrics metrics(f);
-    editor->setTabStopDistance(metrics.horizontalAdvance(' ') * 4);
-    update_gutter_width();
+    int current_size = f.pixelSize() > 0 ? f.pixelSize() : (f.pointSize() > 0 ? f.pointSize() : 13);
+    set_font_size(current_size + delta);
 }
 
 void EditorPanel::set_font_size(int size) {
+    int new_size = qBound(8, size, 48);
+    
+    // Qt Style Sheets forcefully override QWidget::setFont, so we MUST update the inline stylesheet to break free!
+    editor->setStyleSheet(QStringLiteral("QPlainTextEdit { selection-background-color: %1; selection-color: #FFFFFF; font-size: %2px; }")
+                          .arg(Theme::Color::ACCENT).arg(new_size));
+    
     QFont f = editor->font();
-    f.setPointSize(qBound(8, size, 32));
+    f.setPixelSize(new_size);
     editor->setFont(f);
+    gutter->setFont(f);
+    
     QFontMetrics m(f);
     editor->setTabStopDistance(4 * m.horizontalAdvance(' '));
     update_gutter_width();

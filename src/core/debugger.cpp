@@ -133,13 +133,15 @@ void Debugger::reset() {
 }
 
 void Debugger::run_frame(float dt) {
+    // ALWAYS drain any pending IO output from the emulator, even if halted
+    auto outputs = emulator.io_output();
+    for (const std::string& str : outputs) {
+        for (char c : str) console.put_char(c, 0x07);
+    }
+
     // When background thread is active (RUNNING state from emulator.start()),
     // do NOT also call step() — just drain IO output and sync state.
     if (emulator.state() == EmulatorState::RUNNING) {
-        auto outputs = emulator.io_output();
-        for (const std::string& str : outputs) {
-            for (char c : str) console.put_char(c, 0x07);
-        }
         // Check if background thread hit a breakpoint or halted
         sync_state();
         return;
@@ -169,7 +171,7 @@ void Debugger::run_frame(float dt) {
         if (iterations >= 50000) break;
     }
 
-    auto outputs = emulator.io_output();
+    outputs = emulator.io_output();
     for (const std::string& str : outputs) {
         for (char c : str) console.put_char(c, 0x07);
     }

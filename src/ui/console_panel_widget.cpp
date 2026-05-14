@@ -3,6 +3,7 @@
 #include "../core/debugger.h"
 #include <QKeyEvent>
 #include <QVBoxLayout>
+#include <QDockWidget>
 
 namespace memu8086::ui {
 
@@ -41,6 +42,7 @@ void ConsolePanelWidget::refresh() {
     }
 
     if (text != last_render) {
+        bool initial_render = last_render.isEmpty();
         terminal->setPlainText(text);
         last_render = text;
         
@@ -49,6 +51,19 @@ void ConsolePanelWidget::refresh() {
         cursor.movePosition(QTextCursor::Down, QTextCursor::MoveAnchor, state.cursor_y);
         cursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, state.cursor_x);
         terminal->setTextCursor(cursor);
+
+        // If the console actually changed after the initial boot render, bring it to the front
+        if (!initial_render) {
+            QWidget* p = this;
+            while (p && !qobject_cast<QDockWidget*>(p)) {
+                p = p->parentWidget();
+            }
+            if (p) {
+                p->show();
+                p->raise();
+                p->activateWindow(); // Ensure OS knows we want focus
+            }
+        }
     }
 }
 
