@@ -25,6 +25,7 @@
 #include <QFileInfo>
 #include <QWindow>
 #include <QTimer>
+#include <QThread>
 
 namespace memu8086::ui {
 
@@ -192,12 +193,7 @@ MainWindow::MainWindow(emu8086::core::CPU& cpu, emu8086::assembler::Assembler& a
     
     // Forward Qt key events from console panel to the state
     connect(console_panel, &ConsolePanelWidget::key_pressed, [this](char c) {
-        this->console.input_buffer += c;
-        if (this->console.waiting_for_input) {
-            this->console.waiting_for_input = false;
-            // If debugger was paused waiting for input, resume
-            if (this->dbg.get_state() == DebuggerState::PAUSED) this->dbg.run();
-        }
+        this->dbg.send_key(c);
     });
 
     tick_timer = new QTimer(this);
@@ -440,10 +436,15 @@ void MainWindow::refresh_panels() {
     
 
     // Update exec line in editor
-    // Map CS:IP to source line via debug info (if available)
-    // For now use IP directly as a best-effort line hint
-    status_ip->setText(QString("IP: %1").arg(cpu.regs.IP, 4, 16, QChar('0')).toUpper());
-    status_cycles->setText(QString("Cycles: %1").arg(0)); // Or cpu.cycles if available
+    uint16_t ip = cpu.regs.IP;
+    if (assembled && last_output.offset_to_line.count(ip)) {
+        editor->set_exec_line(last_output.offset_to_line.at(ip));
+    } else {
+        editor->set_exec_line(-1);
+    }
+
+    status_ip->setText(QString("IP: %1").arg(ip, 4, 16, QChar('0')).toUpper());
+    status_cycles->setText(QString("Cycles: %1").arg(dbg.get_cycle_count()));
 }
 
 void MainWindow::update_ui_state() {
@@ -473,7 +474,7 @@ void MainWindow::update_ui_state() {
 
 void MainWindow::on_assemble() {
     QString source = editor->get_source();
-    last_output = asm_.assemble(source.toStdString());
+    last_output = asm_.assemble(source.toStdString(), 0x0100);
     editor->set_errors(last_output.errors);
 
     if (last_output.success) {
@@ -481,8 +482,11 @@ void MainWindow::on_assemble() {
         variables_panel->set_symbols(last_output.symbols);
         assembled = true;
         status_state->setText("● Assembled OK");
-        // set exec line to 0
-        editor->set_exec_line(0);
+        
+        // Highlight the very first instruction immediately!
+        if (last_output.offset_to_line.count(cpu.regs.IP)) {
+            editor->set_exec_line(last_output.offset_to_line.at(cpu.regs.IP));
+        }
     } else {
         assembled = false;
         // show error count in status
@@ -508,12 +512,35 @@ void MainWindow::on_stop() {
 void MainWindow::on_step() { 
     if (!assembled) { on_assemble(); if (!assembled) return; }
     prev_snapshot = dbg.get_prev_snapshot();
-    dbg.step();
-    refresh_panels();
+    
+    toolbar_widget->set_state(DebuggerState::RUNNING, editor->is_modified(), assembled);
+    
+    QThread* thread = QThread::create([this]() {
+        dbg.step();
+        QMetaObject::invokeMethod(this, [this]() {
+            refresh_panels();
+            update_ui_state();
+        }, Qt::QueuedConnection);
+    });
+    connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+    thread->start();
 }
 
 void MainWindow::on_step_over() { 
-    if (assembled) dbg.step_over(); 
+    if (!assembled) { on_assemble(); if (!assembled) return; }
+    prev_snapshot = dbg.get_prev_snapshot();
+    
+    toolbar_widget->set_state(DebuggerState::RUNNING, editor->is_modified(), assembled);
+    
+    QThread* thread = QThread::create([this]() {
+        dbg.step_over();
+        QMetaObject::invokeMethod(this, [this]() {
+            refresh_panels();
+            update_ui_state();
+        }, Qt::QueuedConnection);
+    });
+    connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+    thread->start();
 }
 
 void MainWindow::on_reset() { 

@@ -2,10 +2,118 @@
 #include "theme.h"
 #include "../core/debugger.h"
 #include <QKeyEvent>
-#include <QVBoxLayout>
+#include <QPainter>
 #include <QDockWidget>
+#include <QVBoxLayout>
+#include <QTimer>
 
 namespace memu8086::ui {
+
+class ConsoleRenderWidget : public QPlainTextEdit {
+public:
+    ConsoleRenderWidget(emu8086::core::ConsoleState& state, ConsolePanelWidget* panel) 
+        : QPlainTextEdit(panel), state(state), panel(panel) {
+        setFocusPolicy(Qt::StrongFocus);
+        setCursor(Qt::IBeamCursor);
+        setReadOnly(true); // Disable native editing completely
+        setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        
+        QTimer* blink_timer = new QTimer(this);
+        connect(blink_timer, &QTimer::timeout, this, [this]() {
+            cursor_blink = !cursor_blink;
+            viewport()->update();
+        });
+        blink_timer->start(500);
+    }
+    
+protected:
+    void paintEvent(QPaintEvent*) override {
+        QPainter p(viewport());
+        p.fillRect(viewport()->rect(), QColor("#0C0C0C"));
+        
+        QFont font = Theme::mono_font(14);
+        p.setFont(font);
+        
+        QFontMetrics fm(font);
+        int char_w = fm.horizontalAdvance('0');
+        int char_h = fm.height();
+        int ascent = fm.ascent();
+        
+        p.setPen(QColor("#CCCCCC"));
+        for (int r = 0; r < 25; ++r) {
+            QString line;
+            for (int c = 0; c < 80; ++c) {
+                char ch = state.screen[r][c];
+                line += (ch >= 32 && ch < 127) ? QChar(ch) : QChar(' ');
+            }
+            p.drawText(4, r * char_h + ascent + 4, line);
+        }
+        
+        if (hasFocus() && cursor_blink) {
+            int cx = state.cursor_x;
+            int cy = state.cursor_y;
+            if (cx >= 0 && cx < 80 && cy >= 0 && cy < 25) {
+                p.fillRect(cx * char_w + 4, cy * char_h + 4, char_w, char_h, QColor("#CCCCCC"));
+                char under = state.screen[cy][cx];
+                if (under >= 32 && under < 127) {
+                    p.setPen(QColor("#0C0C0C"));
+                    p.drawText(cx * char_w + 4, cy * char_h + ascent + 4, QString(QChar(under)));
+                }
+            }
+        }
+    }
+    
+    void keyPressEvent(QKeyEvent* event) override {
+        int key = event->key();
+        QString text = event->text();
+        char ch = 0;
+
+        if (key == Qt::Key_Return || key == Qt::Key_Enter) ch = '\r';
+        else if (key == Qt::Key_Backspace) ch = 0x08;
+        else if (key == Qt::Key_Escape) ch = 0x1B;
+        else if (key == Qt::Key_Tab) ch = '\t';
+        else if (!text.isEmpty()) {
+            ch = static_cast<char>(text[0].unicode() & 0xFF);
+        }
+
+        if (ch != 0) {
+            emit panel->key_pressed(ch);
+        } else {
+            char scan1 = 0, scan2 = 0;
+            if (key == Qt::Key_Up) { scan1 = 0xE0; scan2 = 0x48; }
+            else if (key == Qt::Key_Down) { scan1 = 0xE0; scan2 = 0x50; }
+            else if (key == Qt::Key_Left) { scan1 = 0xE0; scan2 = 0x4B; }
+            else if (key == Qt::Key_Right) { scan1 = 0xE0; scan2 = 0x4D; }
+            else if (key == Qt::Key_Insert) { scan1 = 0xE0; scan2 = 0x52; }
+            else if (key == Qt::Key_Delete) { scan1 = 0xE0; scan2 = 0x53; }
+            else if (key == Qt::Key_Home) { scan1 = 0xE0; scan2 = 0x47; }
+            else if (key == Qt::Key_End) { scan1 = 0xE0; scan2 = 0x4F; }
+            else if (key == Qt::Key_PageUp) { scan1 = 0xE0; scan2 = 0x49; }
+            else if (key == Qt::Key_PageDown) { scan1 = 0xE0; scan2 = 0x51; }
+            else if (key >= Qt::Key_F1 && key <= Qt::Key_F10) { scan1 = 0x00; scan2 = 0x3B + (key - Qt::Key_F1); }
+            else if (key == Qt::Key_F11) { scan1 = 0x00; scan2 = static_cast<char>(0x85); }
+            else if (key == Qt::Key_F12) { scan1 = 0x00; scan2 = static_cast<char>(0x86); }
+
+            if (scan1 != 0 || scan2 != 0) {
+                emit panel->key_pressed(scan1);
+                emit panel->key_pressed(scan2);
+            }
+        }
+        
+        cursor_blink = true;
+        viewport()->update();
+    }
+    
+    void mousePressEvent(QMouseEvent*) override {
+        setFocus();
+    }
+    
+private:
+    emu8086::core::ConsoleState& state;
+    ConsolePanelWidget* panel;
+    bool cursor_blink = true;
+};
 
 ConsolePanelWidget::ConsolePanelWidget(emu8086::core::ConsoleState& state, QWidget* parent)
     : QWidget(parent), state(state) {
@@ -13,21 +121,13 @@ ConsolePanelWidget::ConsolePanelWidget(emu8086::core::ConsoleState& state, QWidg
     QVBoxLayout* main_layout = new QVBoxLayout(this);
     main_layout->setContentsMargins(0, 0, 0, 0);
 
-    terminal = new QPlainTextEdit(this);
-    terminal->setReadOnly(true);
-    terminal->setFont(Theme::mono_font(13));
-    terminal->setStyleSheet("QPlainTextEdit { background-color: #0C0C0C; color: #CCCCCC; border: none; }");
-    terminal->setWordWrapMode(QTextOption::NoWrap);
-    
-    terminal->installEventFilter(this);
-    
+    terminal = new ConsoleRenderWidget(state, this);
     main_layout->addWidget(terminal);
-    
-    resize(800, 600);
 }
 
 QSize ConsolePanelWidget::sizeHint() const {
-    return QSize(800, 600);
+    QFontMetrics fm(Theme::mono_font(14));
+    return QSize(80 * fm.horizontalAdvance('0') + 20, 25 * fm.height() + 20);
 }
 
 void ConsolePanelWidget::refresh() {
@@ -41,62 +141,27 @@ void ConsolePanelWidget::refresh() {
         text += line + "\n";
     }
 
-    if (text != last_render) {
+    bool text_changed = (text != last_render);
+    if (text_changed) {
         bool initial_render = last_render.isEmpty();
-        terminal->setPlainText(text);
         last_render = text;
         
-        QTextCursor cursor = terminal->textCursor();
-        cursor.setPosition(0);
-        cursor.movePosition(QTextCursor::Down, QTextCursor::MoveAnchor, state.cursor_y);
-        cursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, state.cursor_x);
-        terminal->setTextCursor(cursor);
-
-        // If the console actually changed after the initial boot render, bring it to the front
         if (!initial_render) {
             QWidget* p = this;
             while (p && !qobject_cast<QDockWidget*>(p)) {
                 p = p->parentWidget();
             }
-            if (p) {
+            if (p && !p->isVisible()) {
                 p->show();
                 p->raise();
-                p->activateWindow(); // Ensure OS knows we want focus
             }
         }
     }
+    
+    terminal->viewport()->update();
 }
 
 bool ConsolePanelWidget::eventFilter(QObject* obj, QEvent* event) {
-    if (obj == terminal && event->type() == QEvent::KeyPress) {
-        QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
-        int key = keyEvent->key();
-        QString text = keyEvent->text();
-        char ch = 0;
-
-        if (key == Qt::Key_Return || key == Qt::Key_Enter) ch = '\r';
-        else if (key == Qt::Key_Backspace) ch = 0x08;
-        else if (key == Qt::Key_Escape) ch = 0x1B;
-        else if (!text.isEmpty() && text[0].unicode() >= 32 && text[0].unicode() < 127) ch = text[0].toLatin1();
-
-        if (ch != 0) {
-            if (!state.waiting_for_input) state.input_buffer += ch;
-            if (state.on_key) state.on_key(ch);
-            emit key_pressed(ch);
-        } else {
-            char scan1 = 0, scan2 = 0;
-            if (key == Qt::Key_Up) { scan1 = 0xE0; scan2 = 0x48; }
-            else if (key == Qt::Key_Down) { scan1 = 0xE0; scan2 = 0x50; }
-            else if (key == Qt::Key_Left) { scan1 = 0xE0; scan2 = 0x4B; }
-            else if (key == Qt::Key_Right) { scan1 = 0xE0; scan2 = 0x4D; }
-
-            if (scan1 != 0 && state.on_key) {
-                state.on_key(scan1);
-                state.on_key(scan2);
-            }
-        }
-        return true; // Consume event to prevent default QPlainTextEdit typing behavior
-    }
     return QWidget::eventFilter(obj, event);
 }
 

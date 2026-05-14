@@ -77,7 +77,11 @@ bool InterruptHandler::handle(uint8_t interrupt_number) {
             uint8_t ah = cpu.regs.AH();
             switch (ah) {
                 case 0x00: // Wait for keypress
-                    cpu.regs.AL() = wait_and_read_key();
+                    {
+                        char c = wait_and_read_key();
+                        if (c == '\0') break;
+                        cpu.regs.AL() = c;
+                    }
                     break;
                 case 0x01: // Check keystroke buffer
                     if (has_input()) {
@@ -108,6 +112,7 @@ bool InterruptHandler::handle(uint8_t interrupt_number) {
             switch (ah) {
                 case 0x01: { // Read character with echo
                     char c = wait_and_read_key();
+                    if (c == '\0') break;
                     cpu.regs.AL() = c;
                     io.write_char(c);
                     break;
@@ -120,7 +125,9 @@ bool InterruptHandler::handle(uint8_t interrupt_number) {
                         io.write_char(static_cast<char>(cpu.regs.DL()));
                     } else {
                         if (has_input()) {
-                            cpu.regs.AL() = wait_and_read_key();
+                            char c = wait_and_read_key();
+                            if (c == '\0') break;
+                            cpu.regs.AL() = c;
                             cpu.regs.flags.ZF = false; // standard is ZF=0 if char read
                         } else {
                             cpu.regs.AL() = 0x00;
@@ -131,7 +138,11 @@ bool InterruptHandler::handle(uint8_t interrupt_number) {
                 }
                 case 0x07: // Read char no echo
                 case 0x08: // Read char no echo
-                    cpu.regs.AL() = wait_and_read_key();
+                    {
+                        char c = wait_and_read_key();
+                        if (c == '\0') break;
+                        cpu.regs.AL() = c;
+                    }
                     break;
                 case 0x09: { // Print string
                     uint32_t addr = cpu.ds_addr(cpu.regs.DX);
@@ -147,10 +158,14 @@ bool InterruptHandler::handle(uint8_t interrupt_number) {
                     uint8_t max_chars = cpu.mem.read8(addr); // DOS standard: length max is at DX+0
                     uint8_t count = 0;
                     
-                    while (count < max_chars) {
+                    uint8_t writable = (max_chars > 0) ? (max_chars - 1) : 0;
+                    while (count < writable) {
                         char c = wait_and_read_key();
+                        if (c == '\0') break; // Sentinel check: abort if emulator was stopped
                         if (c == '\r' || c == '\n') {
+                            cpu.mem.write8(addr + 2 + count, '\r'); // DOS standard: CR is placed in buffer
                             io.write_char('\r');
+                            io.write_char('\n');
                             break;
                         } else if (c == '\b' || c == 0x7F) { // Handle backspace
                             if (count > 0) {

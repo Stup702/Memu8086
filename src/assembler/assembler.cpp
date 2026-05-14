@@ -116,6 +116,8 @@ int evaluate_expression(std::string e, const AssemblyResult& res, bool& ok) {
     if (e.substr(0, 5) == "SIZE ") return res.sym_sizes.count(trim(e.substr(5))) ? res.sym_sizes.at(trim(e.substr(5))) : 1;
     if (e.substr(0, 5) == "TYPE ") return res.sym_types.count(trim(e.substr(5))) ? res.sym_types.at(trim(e.substr(5))) : 1;
 
+    if (e.length() == 3 && e[0] == e[2] && (e[0] == '\'' || e[0] == '"')) return static_cast<uint8_t>(e[1]);
+
     if (res.symbols.count(e)) return res.symbols.at(e);
     try {
         if (e.length() > 2 && e[0] == '0' && (e[1] == 'X' || e[1] == 'x')) return std::stoi(e, nullptr, 16);
@@ -318,8 +320,8 @@ void encode_instruction(const std::string& label, const std::string& mnemonic, c
     if (alu_ops.count(mnemonic)) {
         int opc = alu_ops.at(mnemonic);
         bool word = (op1.type == Operand::REG16 || op2.type == Operand::REG16 || (op1.type == Operand::MEM && op1.word));
-        if (op1.type == Operand::REG8 && op2.type == Operand::REG8) { emit8(code, (opc << 3) | 0x00); emit_modrm(code, 3, op1.val, op2.val, 0); }
-        else if (op1.type == Operand::REG16 && op2.type == Operand::REG16) { emit8(code, (opc << 3) | 0x01); emit_modrm(code, 3, op1.val, op2.val, 0); }
+        if (op1.type == Operand::REG8 && op2.type == Operand::REG8) { emit8(code, (opc << 3) | 0x02); emit_modrm(code, 3, op1.val, op2.val, 0); }
+        else if (op1.type == Operand::REG16 && op2.type == Operand::REG16) { emit8(code, (opc << 3) | 0x03); emit_modrm(code, 3, op1.val, op2.val, 0); }
         else if (op1.type == Operand::MEM && op2.type == Operand::REG8) { emit8(code, (opc << 3) | 0x00); emit_modrm(code, op1.mod, op2.val, op1.rm, op1.disp); }
         else if (op1.type == Operand::MEM && op2.type == Operand::REG16) { emit8(code, (opc << 3) | 0x01); emit_modrm(code, op1.mod, op2.val, op1.rm, op1.disp); }
         else if (op1.type == Operand::REG8 && op2.type == Operand::MEM) { emit8(code, (opc << 3) | 0x02); emit_modrm(code, op2.mod, op1.val, op2.rm, op2.disp); }
@@ -370,6 +372,90 @@ void encode_instruction(const std::string& label, const std::string& mnemonic, c
         return;
     }
 
+    if (mnemonic == "LEA") {
+        if (op1.type == Operand::REG16 && op2.type == Operand::MEM) {
+            emit8(code, 0x8D);
+            emit_modrm(code, op2.mod, op1.val, op2.rm, op2.disp);
+        }
+        return;
+    }
+
+    if (mnemonic == "LDS") {
+        if (op1.type == Operand::REG16 && op2.type == Operand::MEM) {
+            emit8(code, 0xC5);
+            emit_modrm(code, op2.mod, op1.val, op2.rm, op2.disp);
+        }
+        return;
+    }
+
+    if (mnemonic == "LES") {
+        if (op1.type == Operand::REG16 && op2.type == Operand::MEM) {
+            emit8(code, 0xC4);
+            emit_modrm(code, op2.mod, op1.val, op2.rm, op2.disp);
+        }
+        return;
+    }
+
+    if (mnemonic == "TEST") {
+        bool word = (op1.type == Operand::REG16 || op2.type == Operand::REG16 || op1.word);
+        if (op1.type == Operand::REG8 && op2.type == Operand::REG8) { emit8(code, 0x84); emit_modrm(code, 3, op2.val, op1.val, 0); }
+        else if (op1.type == Operand::REG16 && op2.type == Operand::REG16) { emit8(code, 0x85); emit_modrm(code, 3, op2.val, op1.val, 0); }
+        else if (op1.type == Operand::MEM && op2.type == Operand::REG8) { emit8(code, 0x84); emit_modrm(code, op1.mod, op2.val, op1.rm, op1.disp); }
+        else if (op1.type == Operand::MEM && op2.type == Operand::REG16) { emit8(code, 0x85); emit_modrm(code, op1.mod, op2.val, op1.rm, op1.disp); }
+        else if (op1.type == Operand::REG8 && op2.type == Operand::MEM) { emit8(code, 0x84); emit_modrm(code, op2.mod, op1.val, op2.rm, op2.disp); }
+        else if (op1.type == Operand::REG16 && op2.type == Operand::MEM) { emit8(code, 0x85); emit_modrm(code, op2.mod, op1.val, op2.rm, op2.disp); }
+        else if (op1.type == Operand::REG8 && op1.val == 0 && op2.type == Operand::IMM) { emit8(code, 0xA8); emit8(code, op2.val); }
+        else if (op1.type == Operand::REG16 && op1.val == 0 && op2.type == Operand::IMM) { emit8(code, 0xA9); emit16(code, op2.val); }
+        else if ((op1.type == Operand::REG8 || op1.type == Operand::REG16 || op1.type == Operand::MEM) && op2.type == Operand::IMM) {
+            emit8(code, 0xF6 | (word ? 1 : 0));
+            if (op1.type == Operand::REG8 || op1.type == Operand::REG16) emit_modrm(code, 3, 0, op1.val, 0);
+            else emit_modrm(code, op1.mod, 0, op1.rm, op1.disp);
+            if (word) emit16(code, op2.val); else emit8(code, op2.val);
+        }
+        return;
+    }
+
+    if (mnemonic == "IN") {
+        if ((op1.type == Operand::REG8 || op1.type == Operand::REG16) && op1.val == 0) {
+            bool word = (op1.type == Operand::REG16);
+            if (op2.type == Operand::IMM) {
+                emit8(code, 0xE4 | (word ? 1 : 0));
+                emit8(code, op2.val);
+            } else if (op2.type == Operand::REG16 && op2.val == 2) {
+                emit8(code, 0xEC | (word ? 1 : 0));
+            }
+        }
+        return;
+    }
+
+    if (mnemonic == "OUT") {
+        if ((op2.type == Operand::REG8 || op2.type == Operand::REG16) && op2.val == 0) {
+            bool word = (op2.type == Operand::REG16);
+            if (op1.type == Operand::IMM) {
+                emit8(code, 0xE6 | (word ? 1 : 0));
+                emit8(code, op1.val);
+            } else if (op1.type == Operand::REG16 && op1.val == 2) {
+                emit8(code, 0xEE | (word ? 1 : 0));
+            }
+        }
+        return;
+    }
+
+    if (mnemonic == "XCHG") {
+        bool word = (op1.type == Operand::REG16 || op2.type == Operand::REG16 || op1.word);
+        if (op1.type == Operand::REG16 && op2.type == Operand::REG16 && (op1.val == 0 || op2.val == 0)) {
+            int reg = (op1.val == 0) ? op2.val : op1.val;
+            emit8(code, 0x90 | reg);
+        }
+        else if (op1.type == Operand::REG8 && op2.type == Operand::REG8) { emit8(code, 0x86); emit_modrm(code, 3, op2.val, op1.val, 0); }
+        else if (op1.type == Operand::REG16 && op2.type == Operand::REG16) { emit8(code, 0x87); emit_modrm(code, 3, op2.val, op1.val, 0); }
+        else if (op1.type == Operand::MEM && op2.type == Operand::REG8) { emit8(code, 0x86); emit_modrm(code, op1.mod, op2.val, op1.rm, op1.disp); }
+        else if (op1.type == Operand::MEM && op2.type == Operand::REG16) { emit8(code, 0x87); emit_modrm(code, op1.mod, op2.val, op1.rm, op1.disp); }
+        else if (op1.type == Operand::REG8 && op2.type == Operand::MEM) { emit8(code, 0x86); emit_modrm(code, op2.mod, op1.val, op2.rm, op2.disp); }
+        else if (op1.type == Operand::REG16 && op2.type == Operand::MEM) { emit8(code, 0x87); emit_modrm(code, op2.mod, op1.val, op2.rm, op2.disp); }
+        return;
+    }
+
     if (mnemonic == "INC" || mnemonic == "DEC") {
         int opc = (mnemonic == "INC") ? 0 : 1;
         if (op1.type == Operand::REG16) emit8(code, 0x40 | (opc << 3) | op1.val);
@@ -378,6 +464,25 @@ void encode_instruction(const std::string& label, const std::string& mnemonic, c
             emit8(code, 0xFE | (word ? 1 : 0));
             if (op1.type == Operand::REG8) emit_modrm(code, 3, opc, op1.val, 0); else emit_modrm(code, op1.mod, opc, op1.rm, op1.disp);
         }
+        return;
+    }
+
+    if (shift_ops.count(mnemonic)) {
+        int opc = shift_ops.at(mnemonic);
+        bool by_cl = (ops.size() > 1 && op2.type == Operand::REG8 && op2.val == 1);
+        bool word = (op1.type == Operand::REG16 || (op1.type == Operand::MEM && op1.word));
+        emit8(code, (by_cl ? 0xD2 : 0xD0) | (word ? 1 : 0));
+        if (op1.type == Operand::REG8 || op1.type == Operand::REG16) emit_modrm(code, 3, opc, op1.val, 0);
+        else emit_modrm(code, op1.mod, opc, op1.rm, op1.disp);
+        return;
+    }
+
+    if (grp3_ops.count(mnemonic)) {
+        int opc = grp3_ops.at(mnemonic);
+        bool word = (op1.type == Operand::REG16 || (op1.type == Operand::MEM && op1.word));
+        emit8(code, 0xF6 | (word ? 1 : 0));
+        if (op1.type == Operand::REG8 || op1.type == Operand::REG16) emit_modrm(code, 3, opc, op1.val, 0);
+        else emit_modrm(code, op1.mod, opc, op1.rm, op1.disp);
         return;
     }
 

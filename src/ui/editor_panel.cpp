@@ -10,6 +10,7 @@
 #include <QHelpEvent>
 #include <QWheelEvent>
 #include <QKeyEvent>
+#include <QSettings>
 
 namespace memu8086::ui {
 
@@ -109,7 +110,20 @@ void EditorPanel::set_errors(const std::vector<emu8086::assembler::AssemblerErro
     gutter->update();
 }
 
-void EditorPanel::set_exec_line(int line) { exec_line = line; gutter->update(); }
+void EditorPanel::set_exec_line(int line) { 
+    exec_line = line; 
+    gutter->update(); 
+    highlight_current_line(); 
+
+    // Automatically scroll the editor to follow the execution line!
+    if (line > 0) {
+        QTextBlock block = editor->document()->findBlockByLineNumber(line - 1);
+        if (block.isValid()) {
+            editor->setTextCursor(QTextCursor(block));
+            editor->ensureCursorVisible();
+        }
+    }
+}
 void EditorPanel::set_breakpoint_lines(const std::set<int>& lines) { breakpoint_lines = lines; gutter->update(); }
 
 int EditorPanel::gutter_width() {
@@ -180,13 +194,28 @@ void EditorPanel::gutter_paint_event(QPaintEvent* event) {
 
 void EditorPanel::highlight_current_line() {
     QList<QTextEdit::ExtraSelection> extraSelections;
+    
+    // 1. Highlight execution line
+    if (exec_line > 0) {
+        QTextBlock block = editor->document()->findBlockByLineNumber(exec_line - 1);
+        if (block.isValid()) {
+            QTextEdit::ExtraSelection exec_sel;
+            exec_sel.format.setBackground(QColor(Theme::Color::EXEC_LINE));
+            exec_sel.format.setProperty(QTextFormat::FullWidthSelection, true);
+            exec_sel.cursor = QTextCursor(block);
+            exec_sel.cursor.clearSelection();
+            extraSelections.append(exec_sel);
+        }
+    }
+
+    // 2. Highlight text cursor (skip if currently on the execution line so it doesn't overlap)
     if (!editor->isReadOnly()) {
         QTextEdit::ExtraSelection selection;
         selection.format.setBackground(QColor(Theme::Color::CURRENT_LINE));
         selection.format.setProperty(QTextFormat::FullWidthSelection, true);
         selection.cursor = editor->textCursor();
         selection.cursor.clearSelection();
-        extraSelections.append(selection);
+        if (selection.cursor.blockNumber() + 1 != exec_line) extraSelections.append(selection);
     }
     for (auto it = errors_map.begin(); it != errors_map.end(); ++it) {
         int line = it.key();
@@ -229,6 +258,21 @@ bool EditorPanel::eventFilter(QObject* obj, QEvent* event) {
             }
             if (ke->key() == Qt::Key_0) {
                 set_font_size(20);
+                return true;
+            }
+        }
+        else if (ke->key() == Qt::Key_Return || ke->key() == Qt::Key_Enter) {
+            QSettings s("memu8086", "memu8086");
+            if (s.value("editor/auto_indent", true).toBool()) {
+                QTextCursor cursor = editor->textCursor();
+                QString line = cursor.block().text();
+                QString whitespace;
+                for (QChar c : line) {
+                    if (c == ' ' || c == '\t') whitespace += c;
+                    else break;
+                }
+                cursor.insertText("\n" + whitespace);
+                editor->setTextCursor(cursor);
                 return true;
             }
         }

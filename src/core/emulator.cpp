@@ -42,8 +42,7 @@ bool Emulator::load_com(const std::vector<uint8_t>& machine_code, uint16_t load_
     std::lock_guard<std::mutex> lock(cpu_mutex_);
     cpu_.reset();
     executor_->reset();
-    irq_->halted = false;
-    irq_->warnings.clear();
+    irq_ = std::make_unique<InterruptHandler>(cpu_, *io_device_);
     
     for (size_t i = 0; i < machine_code.size(); ++i) {
         if (load_offset + i < MEMORY_SIZE) {
@@ -89,6 +88,9 @@ void Emulator::pause() {
 
 void Emulator::stop() {
     state_ = EmulatorState::IDLE;
+    if (irq_) {
+        irq_->enqueue_key('\0');
+    }
     if (exec_thread_.joinable()) {
         for (int i = 0; i < 50; ++i) { // Wait up to 500ms
             if (!thread_active_) break;
@@ -100,8 +102,7 @@ void Emulator::stop() {
     std::lock_guard<std::mutex> lock(cpu_mutex_);
     cpu_.reset();
     executor_->reset();
-    irq_->halted = false;
-    irq_->warnings.clear();
+    irq_ = std::make_unique<InterruptHandler>(cpu_, *io_device_);
     {
         std::lock_guard<std::mutex> out_lock(output_mutex_);
         output_buffer_.clear();
@@ -168,6 +169,12 @@ void Emulator::run_to(uint16_t ip_target) {
 }
 
 void Emulator::exec_loop_() {
+    thread_active_ = true;
+    struct ThreadActiveGuard {
+        std::atomic<bool>& active;
+        ~ThreadActiveGuard() { active = false; }
+    } guard{thread_active_};
+
     auto last_tick = std::chrono::steady_clock::now();
     
     while (state_ == EmulatorState::RUNNING) {
@@ -255,12 +262,14 @@ void Emulator::write_memory(uint32_t addr, uint8_t val) {
 }
 
 EmulatorSnapshot Emulator::snapshot() const {
-    std::lock_guard<std::mutex> lock(cpu_mutex_);
+    std::unique_lock<std::mutex> lock(cpu_mutex_, std::try_to_lock);
     EmulatorSnapshot snap;
     snap.regs = cpu_.regs;
     snap.flags = cpu_.regs.flags;
     snap.cycle_count = executor_->cycle_count;
-    if (!irq_->warnings.empty()) snap.last_error = irq_->warnings.back();
+    if (lock.owns_lock()) {
+        if (!irq_->warnings.empty()) snap.last_error = irq_->warnings.back();
+    }
     return snap;
 }
 
@@ -278,11 +287,17 @@ std::vector<std::string> Emulator::io_output() {
     size_t start = 0;
     size_t end = local_buf.find('\n');
     while (end != std::string::npos) {
-        lines.push_back(local_buf.substr(start, end - start));
+        std::string line = local_buf.substr(start, end - start);
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        lines.push_back(line + '\n'); // Re-attach the newline consumed by split!
         start = end + 1;
         end = local_buf.find('\n', start);
     }
-    if (start < local_buf.length()) lines.push_back(local_buf.substr(start));
+    if (start < local_buf.length()) {
+        std::string line = local_buf.substr(start);
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        lines.push_back(line);
+    }
     
     return lines;
 }

@@ -68,6 +68,9 @@ public:
     // Program loading
     void load_program(const emu8086::assembler::AssemblyResult& result);
 
+    // Console input
+    void send_key(char c);
+
 private:
     void sync_state();
     void save_prev_snapshot();

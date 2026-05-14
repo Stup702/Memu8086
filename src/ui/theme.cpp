@@ -19,7 +19,7 @@ void reset_dark_colors() {
     Color::ACCENT_PRESSED = "#3A8EEF"; Color::TEXT = "#C8C9D4"; Color::TEXT_MUTED = "#6B6D80";
     Color::TEXT_DIM = "#44465A"; Color::BORDER = "#353A5C"; Color::REG_CHANGED = "#4AFF8C";
     Color::ERROR = "#FF5A5A"; Color::WARNING = "#FFB347"; Color::BREAKPOINT = "#FF4F4F";
-    Color::EXEC_LINE = "#2A2D1A"; Color::CURRENT_LINE = "#292B38"; Color::ALT_BG = "#1E2030";
+    Color::EXEC_LINE = "#2D5A2D"; Color::CURRENT_LINE = "#292B38"; Color::ALT_BG = "#1E2030";
     Color::EDITOR_BG = "#141620"; Color::SYN_LABEL = "#C984FF"; Color::SYN_DIRECTIVE = "#FF7E7E";
     Color::SYN_MNEMONIC = "#4A9EFF"; Color::SYN_REGISTER = "#FF9E64"; Color::SYN_NUMBER = "#B5EAD7";
     Color::SYN_COMMENT = "#6B7D6A"; Color::SYN_STRING = "#F7C948"; Color::MEM_ZERO = "#3A3C50";

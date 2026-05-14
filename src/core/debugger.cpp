@@ -226,4 +226,8 @@ void Debugger::load_program(const emu8086::assembler::AssemblyResult& result) {
         sync_state();
 }
 
+void Debugger::send_key(char c) {
+    emulator.send_key(c);
+}
+
 } // namespace emu8086::core
