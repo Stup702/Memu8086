@@ -114,7 +114,7 @@ void StackPanel::update(const emu8086::core::CPU& cpu) {
             it_valh->setBackground(bg); it_vald->setBackground(bg); it_note->setBackground(bg);
         } else if (offset == cpu.regs.BP) {
             it_note->setText("← BP");
-            it_note->setForeground(QColor("#C984FF"));
+            it_note->setForeground(QColor(Theme::Color::SYN_LABEL));
         } else if (val >= 0x0100 && val < 0xFFF0) {
             it_note->setText("[ret?]");
             it_note->setForeground(QColor(Theme::Color::WARNING));

@@ -33,7 +33,7 @@ private:
     QSpinBox* max_instr_per_frame;
     QCheckBox* auto_reset_on_assemble, *break_on_undefined;
     // Theme tab
-    QButtonGroup* theme_group;
+    QComboBox* theme_combo;
     // Key bindings tab
     QTableWidget* keybindings_table;
 };

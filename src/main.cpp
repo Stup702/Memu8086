@@ -21,9 +21,7 @@ int main(int argc, char* argv[]) {
 
     // Read and apply the saved theme
     QSettings s("memu8086", "memu8086");
-    int saved_mode = s.value("theme_mode", 0).toInt();
-    Theme::apply(saved_mode == 0 ? Theme::Mode::Dark : Theme::Mode::Light);
-
+    
     // Instantiate core objects
     CPU cpu;
     Assembler assembler;

@@ -32,12 +32,12 @@ void EditorPanel::setup_editor() {
     layout->setSpacing(0);
 
     editor = new QPlainTextEdit(this);
-    editor->setFont(Theme::mono_font(13));
+    editor->setFont(Theme::mono_font(20));
     editor->setLineWrapMode(QPlainTextEdit::NoWrap);
     
     highlighter = new AsmHighlighter(editor->document());
     gutter = new LineNumberArea(this, editor);
-    set_font_size(13); // Force initialize the fonts and inline stylesheet securely
+    set_font_size(20); // Force initialize the fonts and inline stylesheet securely
 
     connect(editor, &QPlainTextEdit::blockCountChanged, this, &EditorPanel::update_gutter_width);
     connect(editor, &QPlainTextEdit::updateRequest, this, &EditorPanel::update_gutter);
@@ -86,7 +86,7 @@ void EditorPanel::setup_editor() {
     // Status bar
     lbl_status = new QLabel(this);
     lbl_status->setStyleSheet(QStringLiteral("background: %1; color: %2; padding: 2px 6px; border-top: 1px solid %3;")
-                              .arg(Theme::Color::HEADER, Theme::Color::TEXT_MUTED, Theme::Color::BORDER));
+                              .arg(Theme::Color::EDITOR_STATUS_BG, Theme::Color::EDITOR_STATUS_TEXT, Theme::Color::BORDER));
     lbl_status->setFont(Theme::ui_font(11));
     layout->addWidget(lbl_status);
 
@@ -182,7 +182,7 @@ void EditorPanel::highlight_current_line() {
     QList<QTextEdit::ExtraSelection> extraSelections;
     if (!editor->isReadOnly()) {
         QTextEdit::ExtraSelection selection;
-        selection.format.setBackground(QColor("#292B38"));
+        selection.format.setBackground(QColor(Theme::Color::CURRENT_LINE));
         selection.format.setProperty(QTextFormat::FullWidthSelection, true);
         selection.cursor = editor->textCursor();
         selection.cursor.clearSelection();
@@ -228,7 +228,7 @@ bool EditorPanel::eventFilter(QObject* obj, QEvent* event) {
                 return true;
             }
             if (ke->key() == Qt::Key_0) {
-                set_font_size(13);
+                set_font_size(20);
                 return true;
             }
         }

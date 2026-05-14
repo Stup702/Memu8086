@@ -9,6 +9,7 @@
 namespace memu8086::ui {
 
 Toolbar::Toolbar(QWidget* parent) : QToolBar(parent) {
+    setObjectName("main_toolbar");
     setMovable(false);
     setFloatable(false);
 

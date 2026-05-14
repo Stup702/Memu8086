@@ -40,9 +40,9 @@ public:
             QPushButton* btn_redock = new QPushButton("⊞ Redock to Main Window", this);
             btn_redock->setCursor(Qt::PointingHandCursor);
             btn_redock->setStyleSheet(
-                "QPushButton { background-color: #4A9EFF; color: #1C1E26; border: none; border-radius: 0px; padding: 8px; font-weight: bold; }"
-                "QPushButton:hover { background-color: #6DB3FF; }"
-                "QPushButton:pressed { background-color: #3A8EEF; }"
+                QString("QPushButton { background-color: %1; color: %2; border: none; border-radius: 0px; padding: 8px; font-weight: bold; }"
+                "QPushButton:hover { background-color: %3; }"
+                "QPushButton:pressed { background-color: %4; }").arg(Theme::Color::ACCENT, Theme::Color::BG, Theme::Color::ACCENT_HOVER, Theme::Color::ACCENT_PRESSED)
             );
             layout->addWidget(btn_redock);
             btn_redock->hide(); // Hide initially while docked
@@ -63,10 +63,10 @@ public:
                             else if (d->objectName() == "dock_stack") ds = d;
                             else if (d->objectName() == "dock_memory") dm = d;
                         }
-                        if (de && dr) mainWin->resizeDocks({de, dr}, {450, 550}, Qt::Horizontal);
-                        if (de && dv) mainWin->resizeDocks({de, dv}, {500, 300}, Qt::Vertical);
-                        if (dr && dm) mainWin->resizeDocks({dr, dm}, {500, 300}, Qt::Vertical);
-                        if (dr && ds) mainWin->resizeDocks({dr, ds}, {260, 260}, Qt::Horizontal);
+                        if (dr && de) mainWin->resizeDocks({dr, de}, {Theme::layout.reg_w, Theme::layout.ed_w}, Qt::Horizontal);
+                        if (de && dv) mainWin->resizeDocks({de, dv}, {Theme::layout.var_w, Theme::layout.var_h}, Qt::Horizontal);
+                        if (de && dm) mainWin->resizeDocks({de, dm}, {Theme::layout.ed_h, Theme::layout.mem_h}, Qt::Vertical);
+                        if (dv && ds) mainWin->resizeDocks({dv, ds}, {Theme::layout.ed_h, Theme::layout.stack_h}, Qt::Vertical);
                     });
                 }
             });
@@ -135,6 +135,10 @@ MainWindow::MainWindow(emu8086::core::CPU& cpu, emu8086::assembler::Assembler& a
                        QWidget* parent)
     : QMainWindow(parent), cpu(cpu), asm_(asm_), dbg(dbg), console(console)
 {
+    Theme::generate_template();
+    QString saved_theme = QSettings("memu8086", "memu8086").value("theme_name", "Dark").toString();
+    Theme::apply_theme(saved_theme);
+    
     // Initialize panels
     editor = new EditorPanel(this);
     registers_panel = new RegistersPanel(cpu, this);
@@ -285,12 +289,12 @@ void MainWindow::reset_dock_layout() {
         removeDockWidget(d);
     }
 
-    addDockWidget(Qt::LeftDockWidgetArea, dock_editor);
+    addDockWidget(Qt::LeftDockWidgetArea, dock_registers);
     
-    splitDockWidget(dock_editor, dock_registers, Qt::Horizontal);
-    splitDockWidget(dock_editor, dock_variables, Qt::Vertical);
-    splitDockWidget(dock_registers, dock_memory, Qt::Vertical);
-    splitDockWidget(dock_registers, dock_stack, Qt::Horizontal);
+    splitDockWidget(dock_registers, dock_editor, Qt::Horizontal);
+    splitDockWidget(dock_editor, dock_variables, Qt::Horizontal);
+    splitDockWidget(dock_editor, dock_memory, Qt::Vertical);
+    splitDockWidget(dock_variables, dock_stack, Qt::Vertical);
 
     addDockWidget(Qt::BottomDockWidgetArea, dock_console);
     dock_console->setFloating(true); // Undock by default to prevent clutter
@@ -303,10 +307,10 @@ void MainWindow::reset_dock_layout() {
 
     // Sizes MUST be applied after widgets are shown and the layout is mathematically validated!
     QTimer::singleShot(50, this, [this]() {
-        resizeDocks({dock_editor, dock_registers}, {450, 550}, Qt::Horizontal);
-        resizeDocks({dock_editor, dock_variables}, {500, 300}, Qt::Vertical);
-        resizeDocks({dock_registers, dock_memory}, {500, 300}, Qt::Vertical);
-        resizeDocks({dock_registers, dock_stack}, {260, 260}, Qt::Horizontal);
+        resizeDocks({dock_registers, dock_editor}, {Theme::layout.reg_w, Theme::layout.ed_w}, Qt::Horizontal);
+        resizeDocks({dock_editor, dock_variables}, {Theme::layout.var_w, Theme::layout.var_h}, Qt::Horizontal);
+        resizeDocks({dock_editor, dock_memory}, {Theme::layout.ed_h, Theme::layout.mem_h}, Qt::Vertical);
+        resizeDocks({dock_variables, dock_stack}, {Theme::layout.ed_h, Theme::layout.stack_h}, Qt::Vertical);
     });
 }
 

@@ -1,4 +1,5 @@
 #include "highlighter.h"
+#include "theme.h"
 #include <QColor>
 
 namespace memu8086::ui {
@@ -10,38 +11,38 @@ AsmHighlighter::AsmHighlighter(QTextDocument* parent)
 
     // Labels
     rule.pattern = QRegularExpression(QStringLiteral("\\b[A-Za-z0-9_]+:"));
-    rule.format.setForeground(QColor("#C984FF"));
+    rule.format.setForeground(QColor(Theme::Color::SYN_LABEL));
     rule.format.setFontWeight(QFont::Bold);
     rules.append(rule);
 
     // Directives
-    rule.pattern = QRegularExpression(QStringLiteral("\\b(DB|DW|DD|ORG|EQU|RESB|RESW|SEGMENT|ENDS|PROC|ENDP|TIMES|\\.MODEL|\\.CODE|\\.DATA|\\.STACK|ASSUME|PUBLIC|EXTRN|EXTERN|END|DUP|OFFSET|LENGTH|SIZE|TYPE|NEAR|FAR|PTR|@data|@DATA)\\b"), QRegularExpression::CaseInsensitiveOption);
-    rule.format.setForeground(QColor("#FF7E7E"));
+    rule.pattern = QRegularExpression(QStringLiteral("\\b(DB|DW|DD|ORG|EQU|RESB|RESW|SEGMENT|ENDS|PROC|ENDP|TIMES|ASSUME|PUBLIC|EXTRN|EXTERN|END|DUP|OFFSET|LENGTH|SIZE|TYPE|NEAR|FAR|PTR|@data|@DATA)\\b|\\.(MODEL|CODE|DATA|STACK)\\b"), QRegularExpression::CaseInsensitiveOption);
+    rule.format.setForeground(QColor(Theme::Color::SYN_DIRECTIVE));
     rule.format.setFontWeight(QFont::Normal);
     rules.append(rule);
 
     // Mnemonics
     rule.pattern = QRegularExpression(QStringLiteral("\\b(MOV|ADD|SUB|MUL|DIV|AND|OR|XOR|NOT|CMP|JMP|JE|JNE|JZ|JNZ|JL|JLE|JG|JGE|JB|JA|JBE|JAE|JS|JNS|JO|JNO|JP|JNP|JCXZ|CALL|RET|RETF|PUSH|POP|LOOP|LOOPE|LOOPNE|NOP|HLT|INT|IRET|INTO|XLAT|LEA|LDS|LES|XCHG|INC|DEC|NEG|CBW|CWD|SHL|SHR|SAL|SAR|ROL|ROR|RCL|RCR|ADC|SBB|DAA|DAS|AAA|AAS|AAM|AAD|MOVSB|MOVSW|STOSB|STOSW|LODSB|LODSW|SCASB|SCASW|CMPSB|CMPSW|REP|REPE|REPNE|REPZ|REPNZ|PUSHF|POPF|LAHF|SAHF|CLC|STC|CMC|CLD|STD|CLI|STI|WAIT|LOCK)\\b"), QRegularExpression::CaseInsensitiveOption);
-    rule.format.setForeground(QColor("#4A9EFF"));
+    rule.format.setForeground(QColor(Theme::Color::SYN_MNEMONIC));
     rules.append(rule);
 
     // Registers
     rule.pattern = QRegularExpression(QStringLiteral("\\b(AX|BX|CX|DX|AH|AL|BH|BL|CH|CL|DH|DL|SI|DI|SP|BP|IP|CS|DS|ES|SS)\\b"), QRegularExpression::CaseInsensitiveOption);
-    rule.format.setForeground(QColor("#FF9E64"));
+    rule.format.setForeground(QColor(Theme::Color::SYN_REGISTER));
     rules.append(rule);
 
     // Numbers (Hex, Bin, Dec)
     rule.pattern = QRegularExpression(QStringLiteral("\\b[0-9][0-9A-Fa-f]*[Hh]\\b|\\b0x[0-9A-Fa-f]+\\b|\\b[01]+[Bb]\\b|\\b\\d+\\b"));
-    rule.format.setForeground(QColor("#B5EAD7"));
+    rule.format.setForeground(QColor(Theme::Color::SYN_NUMBER));
     rules.append(rule);
 
     // Comments and Strings apply last to override keywords inside them
     comment_rule.pattern = QRegularExpression(QStringLiteral(";[^\n]*"));
-    comment_rule.format.setForeground(QColor("#6B7D6A"));
+    comment_rule.format.setForeground(QColor(Theme::Color::SYN_COMMENT));
     comment_rule.format.setFontItalic(true);
 
     string_rule.pattern = QRegularExpression(QStringLiteral("(\"[^\"]*\"|'[^']*')"));
-    string_rule.format.setForeground(QColor("#F7C948"));
+    string_rule.format.setForeground(QColor(Theme::Color::SYN_STRING));
 }
 
 void AsmHighlighter::highlightBlock(const QString& text) {

@@ -4,32 +4,56 @@
 #include <QFont>
 
 namespace Theme {
-    enum class Mode { Dark, Light };
+    void reset_dark_colors();
+    void generate_template();
+    void apply_theme(const QString& theme_name);
+    QString current_theme();
 
-    void apply(Mode mode);
-    Mode current_mode();
-
-    void apply_dark(QApplication& app);
-    void apply_light(QApplication& app);
     QFont mono_font(int size = 13);
     QFont ui_font(int size = 13);
 
     // Color constants for use in QPainter custom widgets
     namespace Color {
-        inline constexpr auto BG          = "#1C1E26";
-        inline constexpr auto PANEL       = "#22243A";
-        inline constexpr auto HEADER      = "#2A2D45";
-        inline constexpr auto ACTIVE      = "#353A5C";
-        inline constexpr auto ACCENT      = "#4A9EFF";
-        inline constexpr auto ACCENT_HOVER= "#6DB3FF";
-        inline constexpr auto TEXT        = "#C8C9D4";
-        inline constexpr auto TEXT_MUTED  = "#6B6D80";
-        inline constexpr auto TEXT_DIM    = "#44465A";
-        inline constexpr auto BORDER      = "#353A5C";
-        inline constexpr auto REG_CHANGED = "#4AFF8C";
-        inline constexpr auto ERROR       = "#FF5A5A";
-        inline constexpr auto WARNING     = "#FFB347";
-        inline constexpr auto BREAKPOINT  = "#FF4F4F";
-        inline constexpr auto EXEC_LINE   = "#2A2D1A";
+        inline QString BG          = "#1C1E26";
+        inline QString PANEL       = "#22243A";
+        inline QString HEADER      = "#2A2D45";
+        inline QString ACTIVE      = "#353A5C";
+        inline QString ACCENT      = "#4A9EFF";
+        inline QString ACCENT_HOVER= "#6DB3FF";
+        inline QString ACCENT_PRESSED = "#3A8EEF";
+        inline QString TEXT        = "#C8C9D4";
+        inline QString TEXT_MUTED  = "#6B6D80";
+        inline QString TEXT_DIM    = "#44465A";
+        inline QString BORDER      = "#353A5C";
+        inline QString REG_CHANGED = "#4AFF8C";
+        inline QString ERROR       = "#FF5A5A";
+        inline QString WARNING     = "#FFB347";
+        inline QString BREAKPOINT  = "#FF4F4F";
+        inline QString EXEC_LINE   = "#2A2D1A";
+        inline QString CURRENT_LINE= "#292B38";
+        inline QString ALT_BG      = "#1E2030";
+        inline QString EDITOR_BG   = "#141620";
+        
+        inline QString SYN_LABEL     = "#C984FF";
+        inline QString SYN_DIRECTIVE = "#FF7E7E";
+        inline QString SYN_MNEMONIC  = "#4A9EFF";
+        inline QString SYN_REGISTER  = "#FF9E64";
+        inline QString SYN_NUMBER    = "#B5EAD7";
+        inline QString SYN_COMMENT   = "#6B7D6A";
+        inline QString SYN_STRING    = "#F7C948";
+        inline QString MEM_ZERO      = "#3A3C50";
+        inline QString EDITOR_STATUS_BG = "#2A2D45";
+        inline QString EDITOR_STATUS_TEXT = "#6B6D80";
     }
+
+    struct LayoutConfig {
+        int reg_w = 280, ed_w = 920;
+        int var_w = 600, var_h = 320;
+        int ed_h = 550, mem_h = 250;
+        int stack_h = 250;
+    };
+    inline LayoutConfig layout;
+
+    void load_config(const QString& path = "memu8086_config.json");
+    void save_config(const QString& path = "memu8086_config.json");
 }

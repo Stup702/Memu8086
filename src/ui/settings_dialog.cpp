@@ -7,6 +7,7 @@
 #include <QFormLayout>
 #include <QRadioButton>
 #include <QApplication>
+#include <QDir>
 #include "theme.h"
 
 namespace memu8086::ui {
@@ -50,15 +51,17 @@ SettingsDialog::SettingsDialog(QWidget* parent) : QDialog(parent) {
 
     // Theme Tab
     QWidget* theme_tab = new QWidget();
-    QVBoxLayout* theme_layout = new QVBoxLayout(theme_tab);
-    theme_group = new QButtonGroup(this);
-    QRadioButton* rb_dark = new QRadioButton("Dark Theme");
-    QRadioButton* rb_light = new QRadioButton("Light Theme");
-    theme_group->addButton(rb_dark, 0);
-    theme_group->addButton(rb_light, 1);
-    theme_layout->addWidget(rb_dark);
-    theme_layout->addWidget(rb_light);
-    theme_layout->addStretch();
+    QFormLayout* theme_layout = new QFormLayout(theme_tab);
+    theme_combo = new QComboBox(this);
+    theme_combo->addItem("Dark");
+    theme_combo->addItem("Light");
+    QDir dir("themes");
+    if (dir.exists()) {
+        for (const QString& file : dir.entryList({"*.json"}, QDir::Files)) {
+            theme_combo->addItem("themes/" + file);
+        }
+    }
+    theme_layout->addRow("Active Theme:", theme_combo);
     tabs->addTab(theme_tab, "Theme");
 
     // Key bindings Tab
@@ -92,14 +95,18 @@ void SettingsDialog::load_settings() {
     QSettings s("memu8086", "memu8086");
 
     // Editor settings
-    font_size->setValue(s.value("editor/font_size", 13).toInt());
+    font_size->setValue(s.value("editor/font_size", 20).toInt());
     highlight_line->setChecked(s.value("editor/highlight_line", true).toBool());
     auto_indent->setChecked(s.value("editor/auto_indent", true).toBool());
 
     // Theme
-    int mode = s.value("theme_mode", 0).toInt(); // 0=dark, 1=light
-    QAbstractButton* btn = theme_group->button(mode);
-    if (btn) btn->setChecked(true);
+    QString t = s.value("theme_name", "Dark").toString();
+    int idx = theme_combo->findText(t);
+    if (idx >= 0) theme_combo->setCurrentIndex(idx);
+    else {
+        theme_combo->addItem(t);
+        theme_combo->setCurrentIndex(theme_combo->count() - 1);
+    }
 }
 
 void SettingsDialog::save_settings() {
@@ -111,8 +118,8 @@ void SettingsDialog::save_settings() {
     s.setValue("editor/auto_indent", auto_indent->isChecked());
 
     // Theme — apply immediately
-    int mode_id = theme_group->checkedId(); // 0=dark, 1=light
-    Theme::apply(mode_id == 0 ? Theme::Mode::Dark : Theme::Mode::Light);
+    QString selected = theme_combo->currentText();
+    Theme::apply_theme(selected);
 
     // Emit signal so MainWindow can react (update editor font size etc.)
     emit settings_applied();

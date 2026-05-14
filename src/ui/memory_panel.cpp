@@ -136,10 +136,10 @@ void HexView::draw_row(QPainter& p, int y, uint32_t addr, qint64 now, bool& has_
         uint32_t ss_base = cpu->regs.SS << 4;
         uint32_t es_base = cpu->regs.ES << 4;
         
-        if (addr + bytes_per_row > ds_base && addr < ds_base + 0x10000) p.fillRect(QRect(0, y, 1, row_height), QColor("#4A9EFF"));
-        if (addr + bytes_per_row > cs_base && addr < cs_base + 0x10000) p.fillRect(QRect(1, y, 1, row_height), QColor("#F7C948"));
-        if (addr + bytes_per_row > ss_base && addr < ss_base + 0x10000) p.fillRect(QRect(2, y, 1, row_height), QColor("#4AFF8C"));
-        if (addr + bytes_per_row > es_base && addr < es_base + 0x10000) p.fillRect(QRect(3, y, 1, row_height), QColor("#C984FF"));
+        if (addr + bytes_per_row > ds_base && addr < ds_base + 0x10000) p.fillRect(QRect(0, y, 1, row_height), QColor(Theme::Color::ACCENT));
+        if (addr + bytes_per_row > cs_base && addr < cs_base + 0x10000) p.fillRect(QRect(1, y, 1, row_height), QColor(Theme::Color::SYN_STRING));
+        if (addr + bytes_per_row > ss_base && addr < ss_base + 0x10000) p.fillRect(QRect(2, y, 1, row_height), QColor(Theme::Color::REG_CHANGED));
+        if (addr + bytes_per_row > es_base && addr < es_base + 0x10000) p.fillRect(QRect(3, y, 1, row_height), QColor(Theme::Color::SYN_LABEL));
     }
 
     // 2. Address
@@ -163,6 +163,12 @@ void HexView::draw_row(QPainter& p, int y, uint32_t addr, qint64 now, bool& has_
     uint32_t s_min = qMin(sel_start, sel_end);
     uint32_t s_max = qMax(sel_start, sel_end);
 
+    QColor accent_a = QColor(Theme::Color::ACCENT); accent_a.setAlpha(48);
+    QColor warn_a = QColor(Theme::Color::WARNING); warn_a.setAlpha(64);
+    QColor accent_a2 = QColor(Theme::Color::ACCENT); accent_a2.setAlpha(64);
+    QColor match_act = QColor(Theme::Color::SYN_STRING); match_act.setAlpha(120);
+    QColor match_inact = QColor(Theme::Color::SYN_STRING); match_inact.setAlpha(48);
+
     for (int i = 0; i < bytes_per_row; ++i) {
         uint32_t curr = addr + i;
         if (curr >= data_size) break;
@@ -172,9 +178,9 @@ void HexView::draw_row(QPainter& p, int y, uint32_t addr, qint64 now, bool& has_
         QRect byte_rect(byte_x, y, char_width * 2 + 2, row_height);
 
         // Highlights
-        if (curr >= s_min && curr <= s_max && sel_start != UINT32_MAX) p.fillRect(byte_rect, QColor(74, 158, 255, 48)); // #4A9EFF30
-        if (curr == ip_addr) p.fillRect(byte_rect, QColor(255, 179, 71, 64)); // #FFB34740
-        if (curr == sp_addr) p.fillRect(byte_rect, QColor(74, 158, 255, 64)); // #4A9EFF40
+        if (curr >= s_min && curr <= s_max && sel_start != UINT32_MAX) p.fillRect(byte_rect, accent_a);
+        if (curr == ip_addr) p.fillRect(byte_rect, warn_a);
+        if (curr == sp_addr) p.fillRect(byte_rect, accent_a2);
 
         // Search Highlight
         bool is_search_match = false;
@@ -187,11 +193,11 @@ void HexView::draw_row(QPainter& p, int y, uint32_t addr, qint64 now, bool& has_
                 break;
             }
         }
-        if (is_active_match) p.fillRect(byte_rect, QColor(247, 201, 72, 120));
-        else if (is_search_match) p.fillRect(byte_rect, QColor(247, 201, 72, 48)); // #F7C94830
+        if (is_active_match) p.fillRect(byte_rect, match_act);
+        else if (is_search_match) p.fillRect(byte_rect, match_inact);
 
         // Text Color & Write Animation
-        QColor text_color = (val == 0) ? QColor("#3A3C50") : QColor(Theme::Color::TEXT);
+        QColor text_color = (val == 0) ? QColor(Theme::Color::MEM_ZERO) : QColor(Theme::Color::TEXT);
         
         if (written_timestamps.contains(curr)) {
             qint64 elapsed = now - written_timestamps[curr];
@@ -214,7 +220,7 @@ void HexView::draw_row(QPainter& p, int y, uint32_t addr, qint64 now, bool& has_
         if (show_ascii) {
             char c = (val >= 32 && val <= 126) ? (char)val : '.';
             QRect ascii_rect(ascii_x + i * char_width, y, char_width, row_height);
-            if (curr >= s_min && curr <= s_max && sel_start != UINT32_MAX) p.fillRect(ascii_rect, QColor(74, 158, 255, 48));
+            if (curr >= s_min && curr <= s_max && sel_start != UINT32_MAX) p.fillRect(ascii_rect, accent_a);
             p.drawText(ascii_rect, Qt::AlignCenter, QString(c));
         }
     }
