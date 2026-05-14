@@ -6,6 +6,21 @@ QWidget {
     color: #1C1E26;
 }
 
+/* MAIN WINDOW */
+QMainWindow { background: #F2F2F2; }
+QMainWindow::separator { background: #CCCCCC; width: 6px; height: 6px; }
+QMainWindow::separator:hover { background: #4A9EFF; }
+
+#TextTitleBar {
+    background-color: #E0E0E0;
+    border-bottom: 1px solid #CCCCCC;
+}
+#TextTitleBar QPushButton {
+    background: transparent; border: 1px solid #CCCCCC; border-radius: 4px; padding: 4px 10px; font-weight: bold; color: #1C1E26;
+}
+#TextTitleBar QPushButton:hover { background: #CCCCCC; }
+#TextTitleBar QPushButton:pressed { background: #E0E0E0; }
+
 /* Inner Panels & Inputs */
 QPlainTextEdit, QTableWidget, QListWidget, QLineEdit, QSpinBox, QComboBox, QAbstractScrollArea {
     background-color: #FFFFFF;
@@ -57,9 +72,4 @@ QToolBar {
     background-color: #F2F2F2;
     border: none;
     border-bottom: 1px solid #CCCCCC;
-}
-QDockWidget::title {
-    background-color: #EAEAEA;
-    border-bottom: 1px solid #CCCCCC;
-    padding: 4px;
 }

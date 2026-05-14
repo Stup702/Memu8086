@@ -16,6 +16,7 @@ public:
     ~ConsolePanelWidget() override = default;
 
     void refresh(); // call every frame — repaints the screen
+    QSize sizeHint() const override;
 
 signals:
     void key_pressed(char c);

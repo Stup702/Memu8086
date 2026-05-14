@@ -59,15 +59,34 @@ std::string to_upper(std::string s) {
     return s;
 }
 
+std::string trim(const std::string& s) {
+    size_t start = s.find_first_not_of(" \t\r\n");
+    if (start == std::string::npos) return "";
+    size_t end = s.find_last_not_of(" \t\r\n");
+    return s.substr(start, end - start + 1);
+}
+
 int get_reg8(const std::string& r) {
-    if (r=="AL") return 0; if (r=="CL") return 1; if (r=="DL") return 2; if (r=="BL") return 3;
-    if (r=="AH") return 4; if (r=="CH") return 5; if (r=="DH") return 6; if (r=="BH") return 7;
+    if (r=="AL") return 0;
+    if (r=="CL") return 1;
+    if (r=="DL") return 2;
+    if (r=="BL") return 3;
+    if (r=="AH") return 4;
+    if (r=="CH") return 5;
+    if (r=="DH") return 6;
+    if (r=="BH") return 7;
     return -1;
 }
 
 int get_reg16(const std::string& r) {
-    if (r=="AX") return 0; if (r=="CX") return 1; if (r=="DX") return 2; if (r=="BX") return 3;
-    if (r=="SP") return 4; if (r=="BP") return 5; if (r=="SI") return 6; if (r=="DI") return 7;
+    if (r=="AX") return 0;
+    if (r=="CX") return 1;
+    if (r=="DX") return 2;
+    if (r=="BX") return 3;
+    if (r=="SP") return 4;
+    if (r=="BP") return 5;
+    if (r=="SI") return 6;
+    if (r=="DI") return 7;
     return -1;
 }
 
@@ -80,17 +99,24 @@ void emit_modrm(std::vector<uint8_t>& code, int mod, int reg, int rm, int disp) 
 }
 
 // --- Parsing & Evaluation ---
-int evaluate_expression(std::string e, const std::map<std::string, uint16_t>& symbols, bool& ok) {
+int evaluate_expression(std::string e, const AssemblyResult& res, bool& ok) {
+    e = trim(e);
     if (e.empty()) return 0;
     size_t plus = e.find_last_of('+');
     size_t minus = e.find_last_of('-');
     if (plus != std::string::npos && (minus == std::string::npos || plus > minus)) {
-        return evaluate_expression(e.substr(0, plus), symbols, ok) + evaluate_expression(e.substr(plus+1), symbols, ok);
+        return evaluate_expression(e.substr(0, plus), res, ok) + evaluate_expression(e.substr(plus+1), res, ok);
     }
     if (minus != std::string::npos && (plus == std::string::npos || minus > plus)) {
-        return evaluate_expression(e.substr(0, minus), symbols, ok) - evaluate_expression(e.substr(minus+1), symbols, ok);
+        return evaluate_expression(e.substr(0, minus), res, ok) - evaluate_expression(e.substr(minus+1), res, ok);
     }
-    if (symbols.count(e)) return symbols.at(e);
+
+    if (e == "@DATA" || e == "@data") return res.symbols.count("@DATA") ? res.symbols.at("@DATA") : 0;
+    if (e.substr(0, 7) == "LENGTH ") return res.sym_lengths.count(trim(e.substr(7))) ? res.sym_lengths.at(trim(e.substr(7))) : 1;
+    if (e.substr(0, 5) == "SIZE ") return res.sym_sizes.count(trim(e.substr(5))) ? res.sym_sizes.at(trim(e.substr(5))) : 1;
+    if (e.substr(0, 5) == "TYPE ") return res.sym_types.count(trim(e.substr(5))) ? res.sym_types.at(trim(e.substr(5))) : 1;
+
+    if (res.symbols.count(e)) return res.symbols.at(e);
     try {
         if (e.length() > 2 && e[0] == '0' && (e[1] == 'X' || e[1] == 'x')) return std::stoi(e, nullptr, 16);
         if (e.length() > 2 && e[0] == '0' && (e[1] == 'B' || e[1] == 'b')) return std::stoi(e.substr(2), nullptr, 2);
@@ -103,11 +129,11 @@ int evaluate_expression(std::string e, const std::map<std::string, uint16_t>& sy
     return 0;
 }
 
-void parse_memory(std::string e, int& mod, int& rm, int& disp, const std::map<std::string, uint16_t>& symbols, bool& ok) {
+void parse_memory(std::string e, int& mod, int& rm, int& disp, const AssemblyResult& res, bool& ok) {
     e = e.substr(1, e.length()-2); // strip []
     if (e.find("BX") == std::string::npos && e.find("BP") == std::string::npos &&
         e.find("SI") == std::string::npos && e.find("DI") == std::string::npos) {
-        mod = 0; rm = 6; disp = evaluate_expression(e, symbols, ok); return;
+        mod = 0; rm = 6; disp = evaluate_expression(e, res, ok); return;
     }
     
     if (e.find("BX") != std::string::npos && e.find("SI") != std::string::npos) rm = 0;
@@ -124,18 +150,33 @@ void parse_memory(std::string e, int& mod, int& rm, int& disp, const std::map<st
     for (auto r : {"BX", "BP", "SI", "DI"}) {
         while ((p = d_expr.find(r)) != std::string::npos) d_expr.replace(p, 2, "0");
     }
-    disp = evaluate_expression(d_expr, symbols, ok);
+    disp = evaluate_expression(d_expr, res, ok);
     
     if (disp == 0 && rm != 6) mod = 0;
     else if (disp >= -128 && disp <= 127) mod = 1;
     else mod = 2;
 }
 
-Operand parse_operand(std::string s, const std::map<std::string, uint16_t>& symbols, bool& ok) {
+Operand parse_operand(std::string s, const AssemblyResult& res, bool& ok) {
     Operand op;
+    s = trim(s);
+    if (s.substr(0, 8) == "BYTE PTR") { op.word = false; s = trim(s.substr(8)); }
+    else if (s.substr(0, 8) == "WORD PTR") { op.word = true;  s = trim(s.substr(8)); }
+    else if (s.substr(0, 7) == "BYTEPTR") { op.word = false; s = trim(s.substr(7)); }
+    else if (s.substr(0, 7) == "WORDPTR") { op.word = true;  s = trim(s.substr(7)); }
+
+    if (s.substr(0, 9) == "NEAR PTR ") { s = trim(s.substr(9)); }
+    else if (s.substr(0, 8) == "FAR PTR ") { s = trim(s.substr(8)); }
+
+    if (s.substr(0, 7) == "OFFSET ") {
+        s = trim(s.substr(7));
+        op.type = Operand::IMM;
+        op.val = evaluate_expression(s, res, ok);
+        op.word = true;
+        return op;
+    }
+
     s.erase(std::remove_if(s.begin(), s.end(), ::isspace), s.end());
-    if (s.find("BYTEPTR") == 0) { op.word = false; s = s.substr(7); }
-    if (s.find("WORDPTR") == 0) { op.word = true; s = s.substr(7); }
 
     int reg;
     if ((reg = get_reg8(s)) != -1) { op.type = Operand::REG8; op.val = reg; return op; }
@@ -147,12 +188,12 @@ Operand parse_operand(std::string s, const std::map<std::string, uint16_t>& symb
 
     if (!s.empty() && s[0] == '[') {
         op.type = Operand::MEM;
-        parse_memory(s, op.mod, op.rm, op.disp, symbols, ok);
+        parse_memory(s, op.mod, op.rm, op.disp, res, ok);
         return op;
     }
 
     op.type = Operand::IMM;
-    op.val = evaluate_expression(s, symbols, ok);
+    op.val = evaluate_expression(s, res, ok);
     op.word = (op.val < -128 || op.val > 255);
     return op;
 }
@@ -195,6 +236,9 @@ std::vector<ParsedLine> parse_source(const std::string& source) {
         } else if (tokens.size() > 1 && tokens[1] == ":") {
             pl.label = tokens[0];
             idx += 2;
+        } else if (tokens.size() > 1 && (tokens[1] == "PROC" || tokens[1] == "ENDP" || tokens[1] == "SEGMENT" || tokens[1] == "ENDS" || tokens[1] == "EQU" || tokens[1] == "DB" || tokens[1] == "DW" || tokens[1] == "DD")) {
+            pl.label = tokens[0];
+            idx++;
         }
         
         if (idx < tokens.size()) pl.mnemonic = tokens[idx++];
@@ -203,7 +247,10 @@ std::vector<ParsedLine> parse_source(const std::string& source) {
         for (; idx < tokens.size(); idx++) {
             if (tokens[idx] == ",") {
                 if (!current_op.empty()) { pl.operands.push_back(current_op); current_op.clear(); }
-            } else current_op += tokens[idx];
+            } else {
+                if (!current_op.empty()) current_op += " "; // Preserve spacing for keywords like 'DUP' and 'PTR'
+                current_op += tokens[idx];
+            }
         }
         if (!current_op.empty()) pl.operands.push_back(current_op);
         
@@ -213,29 +260,59 @@ std::vector<ParsedLine> parse_source(const std::string& source) {
 }
 
 // --- Main Instruction Encoder ---
-void encode_instruction(const std::string& mnemonic, const std::vector<std::string>& ops, const std::map<std::string, uint16_t>& symbols, std::vector<uint8_t>& code, uint16_t LC, AssemblyResult& res, int line_num, bool is_pass2) {
-    if (mnemonic == "DB" || mnemonic == "DW") {
+void encode_instruction(const std::string& label, const std::string& mnemonic, const std::vector<std::string>& ops, AssemblyResult& res, std::vector<uint8_t>& code, uint16_t LC, int line_num, bool is_pass2) {
+    if (mnemonic == "DB" || mnemonic == "DW" || mnemonic == "DD") {
+        int total_elements = 0;
         for (auto& op : ops) {
+            size_t dup_pos = op.find(" DUP");
+            if (dup_pos != std::string::npos) {
+                size_t lparen = op.find('(', dup_pos);
+                size_t rparen = op.find_last_of(')');
+                if (lparen != std::string::npos && rparen != std::string::npos && rparen > lparen) {
+                    std::string count_str = op.substr(0, dup_pos);
+                    std::string val_str = op.substr(lparen + 1, rparen - lparen - 1);
+                    bool ok = true;
+                    int count = evaluate_expression(count_str, res, ok);
+                    int val = 0;
+                    if (val_str != "?") val = evaluate_expression(val_str, res, ok);
+                    for (int i = 0; i < count; ++i) {
+                        emit8(code, val & 0xFF);
+                        if (mnemonic == "DW" || mnemonic == "DD") emit8(code, (val >> 8) & 0xFF);
+                        if (mnemonic == "DD") { emit8(code, (val >> 16) & 0xFF); emit8(code, (val >> 24) & 0xFF); }
+                    }
+                    total_elements += count;
+                    continue;
+                }
+            }
+
             if (op.front() == '"' || op.front() == '\'') {
                 for (size_t i = 1; i < op.length() - 1; i++) {
                     emit8(code, op[i]);
-                    if (mnemonic == "DW") emit8(code, 0);
+                    if (mnemonic == "DW" || mnemonic == "DD") emit8(code, 0);
+                    if (mnemonic == "DD") { emit8(code, 0); emit8(code, 0); }
+                    total_elements++;
                 }
             } else {
                 bool ok = true;
-                int val = evaluate_expression(op, symbols, ok);
+                int val = evaluate_expression(op, res, ok);
                 if (is_pass2 && !ok) { res.success = false; res.errors.push_back({line_num, "Unresolved symbol: " + op}); }
                 emit8(code, val & 0xFF);
-                if (mnemonic == "DW") emit8(code, (val >> 8) & 0xFF);
+                if (mnemonic == "DW" || mnemonic == "DD") emit8(code, (val >> 8) & 0xFF);
+                if (mnemonic == "DD") { emit8(code, (val >> 16) & 0xFF); emit8(code, (val >> 24) & 0xFF); }
+                total_elements++;
             }
+        }
+        if (!label.empty() && is_pass2) {
+            res.sym_lengths[label] = total_elements;
+            res.sym_sizes[label] = total_elements * (mnemonic == "DB" ? 1 : (mnemonic == "DW" ? 2 : 4));
         }
         return;
     }
     if (one_byte_ops.count(mnemonic)) { emit8(code, one_byte_ops.at(mnemonic)); return; }
     
     bool ok = true;
-    Operand op1 = ops.size() > 0 ? parse_operand(ops[0], symbols, ok) : Operand();
-    Operand op2 = ops.size() > 1 ? parse_operand(ops[1], symbols, ok) : Operand();
+    Operand op1 = ops.size() > 0 ? parse_operand(ops[0], res, ok) : Operand();
+    Operand op2 = ops.size() > 1 ? parse_operand(ops[1], res, ok) : Operand();
     if (is_pass2 && !ok) { res.success = false; res.errors.push_back({line_num, "Invalid operand in " + mnemonic}); }
 
     if (alu_ops.count(mnemonic)) {
@@ -348,30 +425,72 @@ void encode_instruction(const std::string& mnemonic, const std::vector<std::stri
 AssemblyResult Assembler::assemble(const std::string& source, uint16_t origin) {
     AssemblyResult res;
     auto lines = parse_source(source);
+    
+    struct AssemblerState {
+        enum class Segment { NONE, CODE, DATA, STACK, EXTRA } current_seg = Segment::CODE;
+        uint16_t stack_size = 0x100;
+        std::string entry_label;
+    };
+
+    int prev_code_size = 0;
+    int prev_data_size = 0;
 
     // 3 passes: allows resolving forward jumps shrinking from near (3b) to short (2b) cleanly.
     int passes = 3; 
     for (int p = 0; p < passes; p++) {
-        uint16_t LC = origin;
+        AssemblerState state;
+        uint16_t code_LC = origin;
+        uint16_t data_LC = origin + prev_code_size;
+
         bool is_pass2 = (p == passes - 1);
         if (is_pass2) {
             res.machine_code.clear(); res.errors.clear(); res.line_to_offset.clear(); res.offset_to_line.clear();
         }
+        
+        std::vector<uint8_t> code_bytes;
+        std::vector<uint8_t> data_bytes;
+
+        res.symbols["@DATA"] = 0;
+        res.symbols["@data"] = 0;
 
         for (auto& line : lines) {
-            if (!line.label.empty() && !is_pass2) res.symbols[line.label] = LC;
-            if (line.mnemonic.empty()) continue;
+            uint16_t& LC = (state.current_seg == AssemblerState::Segment::DATA) ? data_LC : code_LC;
+            std::vector<uint8_t>& current_bytes = (state.current_seg == AssemblerState::Segment::DATA) ? data_bytes : code_bytes;
+
+            if (!line.label.empty() && !is_pass2) {
+                res.symbols[line.label] = LC;
+                if (line.mnemonic == "DB") res.sym_types[line.label] = 1;
+                else if (line.mnemonic == "DW") res.sym_types[line.label] = 2;
+                else if (line.mnemonic == "DD") res.sym_types[line.label] = 4;
+            }
             
-            if (line.mnemonic == "ORG") {
+            std::string m = line.mnemonic;
+            if (m.empty()) continue;
+            
+            if (m == ".MODEL") { res.has_model_directive = true; continue; }
+            if (m == ".STACK") {
+                if (!line.operands.empty()) {
+                    bool ok = true;
+                    state.stack_size = evaluate_expression(line.operands[0], res, ok);
+                }
+                continue;
+            }
+            if (m == ".DATA" || m == ".DATA?") { state.current_seg = AssemblerState::Segment::DATA; continue; }
+            if (m == ".CODE") { state.current_seg = AssemblerState::Segment::CODE; continue; }
+            if (m == "ASSUME" || m == "PUBLIC" || m == "EXTRN" || m == "EXTERN") continue;
+            if (m == "END") { if (!line.operands.empty()) state.entry_label = line.operands[0]; break; }
+            if (m == "PROC" || m == "ENDP" || m == "SEGMENT" || m == "ENDS") continue;
+
+            if (m == "ORG") {
                 bool ok = true;
-                uint16_t new_LC = evaluate_expression(line.operands[0], res.symbols, ok);
-                if (is_pass2 && new_LC > LC) res.machine_code.resize(res.machine_code.size() + (new_LC - LC), 0);
+                uint16_t new_LC = evaluate_expression(line.operands[0], res, ok);
+                if (is_pass2 && new_LC > LC) current_bytes.resize(current_bytes.size() + (new_LC - LC), 0);
                 LC = new_LC;
                 continue;
-            } else if (line.mnemonic == "EQU") {
+            } else if (m == "EQU") {
                 if (!is_pass2) {
                     bool ok = true;
-                    res.symbols[line.label] = evaluate_expression(line.operands[0], res.symbols, ok);
+                    res.symbols[line.label] = evaluate_expression(line.operands[0], res, ok);
                 }
                 continue;
             }
@@ -381,14 +500,25 @@ AssemblyResult Assembler::assemble(const std::string& source, uint16_t origin) {
                 res.offset_to_line[LC] = line.line_num;
             }
 
-            std::vector<uint8_t> code;
-            encode_instruction(line.mnemonic, line.operands, res.symbols, code, LC, res, line.line_num, is_pass2);
+            std::vector<uint8_t> instr_bytes;
+            encode_instruction(line.label, m, line.operands, res, instr_bytes, LC, line.line_num, is_pass2);
             
-            if (is_pass2) res.machine_code.insert(res.machine_code.end(), code.begin(), code.end());
-            LC += code.size();
+            if (is_pass2) current_bytes.insert(current_bytes.end(), instr_bytes.begin(), instr_bytes.end());
+            LC += instr_bytes.size();
+        }
+        
+        prev_code_size = code_LC - origin;
+        prev_data_size = data_LC - (origin + prev_code_size);
+        
+        if (is_pass2) {
+            res.machine_code = code_bytes;
+            res.machine_code.insert(res.machine_code.end(), data_bytes.begin(), data_bytes.end());
+            res.code_segment_offset = origin;
+            res.data_segment_offset = origin + prev_code_size;
         }
     }
     return res;
 }
 
-} // namespace emu8086::assembler
+
+} // namespace emu8086::assemblerAssemblyResult

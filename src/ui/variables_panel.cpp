@@ -31,11 +31,11 @@ VariablesPanel::VariablesPanel(QWidget* parent) : QWidget(parent) {
     layout->addLayout(watch_bar);
 
     // Table
-    table = new QTableWidget(0, 5, this);
-    table->setHorizontalHeaderLabels({"Name", "Address", "Value (hex)", "Value (dec)", "Type"});
+    table = new QTableWidget(0, 7, this);
+    table->setHorizontalHeaderLabels({"Name", "Address", "Hex", "High", "Low", "Dec", "Type"});
     table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     table->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-    table->horizontalHeader()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
     table->verticalHeader()->setVisible(false);
     table->setAlternatingRowColors(true);
     table->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -56,11 +56,11 @@ void VariablesPanel::update(const emu8086::core::CPU& cpu) {
     
     QTimer::singleShot(150, this, [this]() {
         for (int r = 0; r < table->rowCount(); ++r) {
-            auto* ith = table->item(r, 2);
-            auto* itd = table->item(r, 3);
-            if (ith && ith->foreground().color() == QColor(Theme::Color::REG_CHANGED)) {
-                ith->setForeground(QColor(Theme::Color::TEXT));
-                if (itd) itd->setForeground(QColor(Theme::Color::TEXT));
+            for (int c : {2, 3, 4, 5}) {
+                auto* it = table->item(r, c);
+                if (it && it->foreground().color() == QColor(Theme::Color::REG_CHANGED)) {
+                    it->setForeground(QColor(Theme::Color::TEXT));
+                }
             }
         }
     });
@@ -87,7 +87,7 @@ void VariablesPanel::rebuild_table(const emu8086::core::CPU& cpu) {
         item->setForeground(QColor(Theme::Color::TEXT_MUTED));
         item->setFlags((item->flags() & ~Qt::ItemIsEnabled) | Qt::ItemIsSelectable);
         table->setItem(row, 0, item);
-        table->setSpan(row, 0, 1, 5);
+        table->setSpan(row, 0, 1, 7);
         row++;
     };
 
@@ -98,23 +98,30 @@ void VariablesPanel::rebuild_table(const emu8086::core::CPU& cpu) {
         
         auto* it_addr = new QTableWidgetItem(is_reg ? "-" : QString("0x%1").arg(addr, 5, 16, QChar('0')).toUpper());
         auto* it_valh = new QTableWidgetItem(QString("0x%1").arg(val, type == "byte" ? 2 : 4, 16, QChar('0')).toUpper());
+        auto* it_high = new QTableWidgetItem(type == "word" ? QString("0x%1").arg(val >> 8, 2, 16, QChar('0')).toUpper() : "-");
+        auto* it_low = new QTableWidgetItem(QString("0x%1").arg(val & 0xFF, 2, 16, QChar('0')).toUpper());
         auto* it_vald = new QTableWidgetItem(QString::number(val));
         auto* it_type = new QTableWidgetItem(type);
         
         it_addr->setFont(Theme::mono_font(12));
         it_valh->setFont(Theme::mono_font(12));
+        it_high->setFont(Theme::mono_font(12));
+        it_low->setFont(Theme::mono_font(12));
         it_vald->setFont(Theme::mono_font(12));
 
         QString key = name;
         if (prev_values.contains(key) && prev_values[key] != val) {
             it_valh->setForeground(QColor(Theme::Color::REG_CHANGED));
+            it_high->setForeground(QColor(Theme::Color::REG_CHANGED));
+            it_low->setForeground(QColor(Theme::Color::REG_CHANGED));
             it_vald->setForeground(QColor(Theme::Color::REG_CHANGED));
         }
         prev_values[key] = val;
 
         table->setItem(row, 0, it_name); table->setItem(row, 1, it_addr);
-        table->setItem(row, 2, it_valh); table->setItem(row, 3, it_vald);
-        table->setItem(row, 4, it_type);
+        table->setItem(row, 2, it_valh); table->setItem(row, 3, it_high);
+        table->setItem(row, 4, it_low);  table->setItem(row, 5, it_vald);
+        table->setItem(row, 6, it_type);
         row++;
     };
 
@@ -149,8 +156,8 @@ void VariablesPanel::rebuild_table(const emu8086::core::CPU& cpu) {
         l->addWidget(new QLabel(w.size == 1 ? "byte" : "word"));
         l->addStretch();
         l->addWidget(btn_del);
-        table->setCellWidget(row - 1, 4, w_container);
-        table->item(row - 1, 4)->setText(""); // Clear original text
+        table->setCellWidget(row - 1, 6, w_container);
+        table->item(row - 1, 6)->setText(""); // Clear original text
     }
 }
 

@@ -4,6 +4,11 @@
 #include <QFont>
 
 namespace Theme {
+    enum class Mode { Dark, Light };
+
+    void apply(Mode mode);
+    Mode current_mode();
+
     void apply_dark(QApplication& app);
     void apply_light(QApplication& app);
     QFont mono_font(int size = 13);

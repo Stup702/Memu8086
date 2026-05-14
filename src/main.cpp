@@ -5,6 +5,7 @@
 #include "core/cpu.h"
 #include "core/debugger.h"
 #include "assembler/assembler.h"
+#include <QSettings>
 
 using namespace emu8086::core;
 using namespace emu8086::assembler;
@@ -18,8 +19,10 @@ int main(int argc, char* argv[]) {
     // Load embedded monospace font
     QFontDatabase::addApplicationFont(":/fonts/JetBrainsMono-Regular.ttf");
 
-    // Apply dark theme stylesheet
-    Theme::apply_dark(app);
+    // Read and apply the saved theme
+    QSettings s("memu8086", "memu8086");
+    int saved_mode = s.value("theme_mode", 0).toInt();
+    Theme::apply(saved_mode == 0 ? Theme::Mode::Dark : Theme::Mode::Light);
 
     // Instantiate core objects
     CPU cpu;

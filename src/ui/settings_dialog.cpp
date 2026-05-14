@@ -6,6 +6,8 @@
 #include <QSettings>
 #include <QFormLayout>
 #include <QRadioButton>
+#include <QApplication>
+#include "theme.h"
 
 namespace memu8086::ui {
 
@@ -86,7 +88,34 @@ SettingsDialog::SettingsDialog(QWidget* parent) : QDialog(parent) {
     load_settings();
 }
 
-void SettingsDialog::load_settings() { /* TODO: Hook to actual settings */ }
-void SettingsDialog::save_settings() { /* TODO: Hook to actual settings */ }
+void SettingsDialog::load_settings() {
+    QSettings s("memu8086", "memu8086");
+
+    // Editor settings
+    font_size->setValue(s.value("editor/font_size", 13).toInt());
+    highlight_line->setChecked(s.value("editor/highlight_line", true).toBool());
+    auto_indent->setChecked(s.value("editor/auto_indent", true).toBool());
+
+    // Theme
+    int mode = s.value("theme_mode", 0).toInt(); // 0=dark, 1=light
+    QAbstractButton* btn = theme_group->button(mode);
+    if (btn) btn->setChecked(true);
+}
+
+void SettingsDialog::save_settings() {
+    QSettings s("memu8086", "memu8086");
+
+    // Editor settings
+    s.setValue("editor/font_size", font_size->value());
+    s.setValue("editor/highlight_line", highlight_line->isChecked());
+    s.setValue("editor/auto_indent", auto_indent->isChecked());
+
+    // Theme — apply immediately
+    int mode_id = theme_group->checkedId(); // 0=dark, 1=light
+    Theme::apply(mode_id == 0 ? Theme::Mode::Dark : Theme::Mode::Light);
+
+    // Emit signal so MainWindow can react (update editor font size etc.)
+    emit settings_applied();
+}
 
 } // namespace memu8086::ui

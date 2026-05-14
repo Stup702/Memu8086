@@ -12,6 +12,7 @@
 
 #include <QVBoxLayout>
 #include <QGridLayout>
+#include <QPushButton>
 #include <QMenuBar>
 #include <QStatusBar>
 #include <QSettings>
@@ -24,6 +25,69 @@
 #include <QFileInfo>
 
 namespace memu8086::ui {
+
+class DockContentWrapper : public QWidget {
+public:
+    DockContentWrapper(QWidget* content, QDockWidget* dock, bool enable_redock_btn = true) : QWidget(dock) {
+        QVBoxLayout* layout = new QVBoxLayout(this);
+        layout->setContentsMargins(0, 0, 0, 0);
+        layout->setSpacing(0);
+        layout->addWidget(content, 1); // 1 = Stretch to fill available space
+
+        if (enable_redock_btn) {
+            QPushButton* btn_redock = new QPushButton("⊞ Redock to Main Window", this);
+            btn_redock->setCursor(Qt::PointingHandCursor);
+            btn_redock->setStyleSheet(
+                "QPushButton { background-color: #4A9EFF; color: #1C1E26; border: none; border-radius: 0px; padding: 8px; font-weight: bold; }"
+                "QPushButton:hover { background-color: #6DB3FF; }"
+                "QPushButton:pressed { background-color: #3A8EEF; }"
+            );
+            layout->addWidget(btn_redock);
+            btn_redock->hide(); // Hide initially while docked
+
+            connect(dock, &QDockWidget::topLevelChanged, btn_redock, &QWidget::setVisible);
+            connect(btn_redock, &QPushButton::clicked, dock, [dock]() { dock->setFloating(false); });
+        }
+    }
+};
+
+class TextTitleBar : public QWidget {
+public:
+    TextTitleBar(const QString& title, QDockWidget* dock) : QWidget(dock) {
+        setObjectName("TextTitleBar");
+        setAttribute(Qt::WA_StyledBackground, true);
+        
+        QHBoxLayout* layout = new QHBoxLayout(this);
+        layout->setContentsMargins(10, 6, 6, 6);
+        layout->setSpacing(8);
+
+        QLabel* lbl = new QLabel(title.toUpper(), this);
+        lbl->setStyleSheet("font-weight: bold; letter-spacing: 1px;");
+
+        QPushButton* btn_float = new QPushButton("Undock", this);
+        QPushButton* btn_close = new QPushButton("Close", this);
+        btn_float->setCursor(Qt::PointingHandCursor);
+        btn_close->setCursor(Qt::PointingHandCursor);
+
+        layout->addWidget(lbl);
+        layout->addStretch();
+        layout->addWidget(btn_float);
+        layout->addWidget(btn_close);
+
+        connect(btn_float, &QPushButton::clicked, dock, [dock]() { dock->setFloating(!dock->isFloating()); });
+        connect(btn_close, &QPushButton::clicked, dock, &QDockWidget::close);
+
+        connect(dock, &QDockWidget::topLevelChanged, this, [btn_float, btn_close](bool floating) {
+            btn_float->setVisible(!floating);
+            btn_close->setVisible(!floating);
+        });
+    }
+protected:
+    void mousePressEvent(QMouseEvent* event) override { event->ignore(); }
+    void mouseDoubleClickEvent(QMouseEvent* event) override { event->ignore(); }
+    void mouseMoveEvent(QMouseEvent* event) override { event->ignore(); }
+    void mouseReleaseEvent(QMouseEvent* event) override { event->ignore(); }
+};
 
 MainWindow::MainWindow(emu8086::core::CPU& cpu, emu8086::assembler::Assembler& asm_,
                        emu8086::core::Debugger& dbg, 
@@ -38,9 +102,6 @@ MainWindow::MainWindow(emu8086::core::CPU& cpu, emu8086::assembler::Assembler& a
     stack_panel = new StackPanel(cpu, this);
     variables_panel = new VariablesPanel(this);
     console_panel = new ConsolePanelWidget(console, this);
-    console_panel->setWindowFlags(Qt::Window);
-    console_panel->setWindowTitle("memu8086 - Console");
-    console_panel->resize(console_panel->sizeHint());
     toolbar_widget = new Toolbar(this);
 
     setup_dock_panels();
@@ -99,11 +160,36 @@ MainWindow::MainWindow(emu8086::core::CPU& cpu, emu8086::assembler::Assembler& a
     connect(tick_timer, &QTimer::timeout, this, &MainWindow::on_debugger_tick);
     tick_timer->start(16); // ~60fps
 
-    // Restore persistence settings
+      // Restore persistence settings
     QSettings s("memu8086", "memu8086");
     if (s.contains("geometry")) restoreGeometry(s.value("geometry").toByteArray());
-    if (s.contains("windowState")) restoreState(s.value("windowState").toByteArray());
+    
+    if (s.value("layout_user_saved", false).toBool()) {
+        if (s.contains("windowState")) restoreState(s.value("windowState").toByteArray());
+    } else {
+        reset_dock_layout();
+        
+        // Position the floating console window at the bottom right initially
+        QTimer::singleShot(100, this, [this]() {
+            if (dock_console->isFloating()) {
+                QRect screen = this->geometry();
+                int cx = screen.right() - dock_console->width() - 40;
+                int cy = screen.bottom() - dock_console->height() - 40;
+                dock_console->move(cx, cy);
+                dock_console->raise();
+            }
+        });
+    }
+
+    // Ensure all docks are shown
+    for (QDockWidget* d : {dock_editor, dock_variables, dock_registers,
+                           dock_stack, dock_memory, dock_console}) {
+        d->show();
+    }
+
     current_file = s.value("lastFile").toString();
+
+    // Apply theme at startup from settings
 
     update_ui_state();
     
@@ -112,39 +198,64 @@ MainWindow::MainWindow(emu8086::core::CPU& cpu, emu8086::assembler::Assembler& a
     } else {
         on_new_file();
     }
-    console_panel->show();
 }
 
 void MainWindow::setup_dock_panels() {
-    setDockOptions(QMainWindow::AnimatedDocks | QMainWindow::AllowNestedDocks | QMainWindow::AllowTabbedDocks);
+    // Disabled AllowTabbedDocks to prevent panels from merging into VS Code style tabs!
+    setDockOptions(QMainWindow::AnimatedDocks | QMainWindow::AllowNestedDocks);
 
     dock_editor = new QDockWidget("Code Editor", this);
-    dock_editor->setWidget(editor);
+    dock_editor->setWidget(new DockContentWrapper(editor, dock_editor));
+    dock_editor->setTitleBarWidget(new TextTitleBar("Code Editor", dock_editor));
     dock_editor->setObjectName("dock_editor");
 
     dock_variables = new QDockWidget("Variables", this);
-    dock_variables->setWidget(variables_panel);
+    dock_variables->setWidget(new DockContentWrapper(variables_panel, dock_variables));
+    dock_variables->setTitleBarWidget(new TextTitleBar("Variables", dock_variables));
     dock_variables->setObjectName("dock_variables");
 
     dock_registers = new QDockWidget("Registers", this);
-    dock_registers->setWidget(registers_panel);
+    dock_registers->setWidget(new DockContentWrapper(registers_panel, dock_registers));
+    dock_registers->setTitleBarWidget(new TextTitleBar("Registers", dock_registers));
     dock_registers->setObjectName("dock_registers");
 
     dock_stack = new QDockWidget("Stack", this);
-    dock_stack->setWidget(stack_panel);
+    dock_stack->setWidget(new DockContentWrapper(stack_panel, dock_stack));
+    dock_stack->setTitleBarWidget(new TextTitleBar("Stack", dock_stack));
     dock_stack->setObjectName("dock_stack");
 
     dock_memory = new QDockWidget("Memory", this);
-    dock_memory->setWidget(memory_panel);
+    dock_memory->setWidget(new DockContentWrapper(memory_panel, dock_memory));
+    dock_memory->setTitleBarWidget(new TextTitleBar("Memory", dock_memory));
     dock_memory->setObjectName("dock_memory");
+    
+    dock_console = new QDockWidget("Console", this);
+    dock_console->setWidget(new DockContentWrapper(console_panel, dock_console, false));
+    dock_console->setTitleBarWidget(new TextTitleBar("Console", dock_console));
+    dock_console->setObjectName("dock_console");
+}
 
-    // Default Layout
+void MainWindow::reset_dock_layout() {
+    // Remove docks from areas to cleanly break any accidental tabs/splits
+    for (QDockWidget* d : {dock_editor, dock_variables, dock_registers,
+                           dock_stack, dock_memory, dock_console}) {
+        removeDockWidget(d);
+    }
+
     addDockWidget(Qt::LeftDockWidgetArea, dock_editor);
     splitDockWidget(dock_editor, dock_variables, Qt::Vertical);
     
     addDockWidget(Qt::RightDockWidgetArea, dock_registers);
     splitDockWidget(dock_registers, dock_stack, Qt::Vertical);
     splitDockWidget(dock_stack, dock_memory, Qt::Vertical);
+
+    addDockWidget(Qt::BottomDockWidgetArea, dock_console);
+    dock_console->setFloating(true); // Undock by default to prevent clutter
+
+    // Set initial size proportions
+    resizeDocks({dock_editor, dock_registers}, {600, 300}, Qt::Horizontal);
+    resizeDocks({dock_editor, dock_variables}, {400, 200}, Qt::Vertical);
+    resizeDocks({dock_registers, dock_stack, dock_memory}, {200, 150, 150}, Qt::Vertical);
 }
 
 void MainWindow::setup_toolbar() {
@@ -177,12 +288,23 @@ void MainWindow::setup_menu_bar() {
     view_menu->addAction(dock_registers->toggleViewAction());
     view_menu->addAction(dock_stack->toggleViewAction());
     view_menu->addAction(dock_memory->toggleViewAction());
+    view_menu->addAction(dock_console->toggleViewAction());
     view_menu->addSeparator();
-    QAction* action_console = view_menu->addAction("Console Window");
-    connect(action_console, &QAction::triggered, this, [this]() {
-        console_panel->show();
-        console_panel->raise();
-        console_panel->activateWindow();
+    
+    QAction* act_save_layout = view_menu->addAction("Save Current Layout");
+    QAction* act_reset_layout = view_menu->addAction("Reset to Default Layout");
+
+    connect(act_save_layout, &QAction::triggered, this, [this]() {
+        QSettings s("memu8086", "memu8086");
+        s.setValue("windowState", saveState());
+        s.setValue("layout_user_saved", true);
+    });
+
+    connect(act_reset_layout, &QAction::triggered, this, [this]() {
+        reset_dock_layout();
+        QSettings s("memu8086", "memu8086");
+        s.setValue("layout_user_saved", false);
+        s.remove("windowState");
     });
 
     QMenu* emu_menu = menuBar()->addMenu("Emulator");
@@ -464,6 +586,12 @@ void MainWindow::show_about() {
 
 void MainWindow::show_settings() {
     SettingsDialog dlg(this);
+    connect(&dlg, &SettingsDialog::settings_applied, this, [this]() {
+        // Re-apply editor font if size changed
+        QSettings s("memu8086", "memu8086");
+        int font_size = s.value("editor/font_size", 13).toInt();
+        editor->set_font_size(font_size);
+    });
     dlg.exec();
 }
 

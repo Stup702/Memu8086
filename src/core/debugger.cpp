@@ -132,44 +132,48 @@ void Debugger::reset() {
     sync_state();
 }
 
-    void Debugger::run_frame(float dt) {
-        instr_accumulator_ += speed_ips_ * dt;
-        int iterations = 0;
-
-        while (instr_accumulator_ >= 1.0f && get_state() == DebuggerState::RUNNING) {
-            auto snap = emulator.snapshot();
-            prev_snapshot_.regs = snap.regs;
-            prev_snapshot_.flags = snap.flags;
-            prev_snapshot_.cycle_count = snap.cycle_count;
-
-            emulator.step();
-            instr_accumulator_ -= 1.0f;
-            iterations++;
-
-            if (emulator.state() == EmulatorState::HALTED) {
-                break;
-            }
-
-            auto next_snap = emulator.snapshot();
-            if (breakpoints_.find(next_snap.regs.IP) != breakpoints_.end()) {
-                emulator.pause();
-                break;
-            }
-
-            if (iterations >= 50000) {
-                break;
-            }
+void Debugger::run_frame(float dt) {
+    // When background thread is active (RUNNING state from emulator.start()),
+    // do NOT also call step() — just drain IO output and sync state.
+    if (emulator.state() == EmulatorState::RUNNING) {
+        auto outputs = emulator.io_output();
+        for (const std::string& str : outputs) {
+            for (char c : str) console.put_char(c, 0x07);
         }
-
+        // Check if background thread hit a breakpoint or halted
         sync_state();
+        return;
+    }
 
-    // Process I/O from the background thread running the emulator
+    // Controlled-speed stepping mode (used when we want frame-rate-limited stepping
+    // without a background thread — currently not exposed to UI but available for future use)
+    if (emulator.state() != EmulatorState::PAUSED) return;
+
+    instr_accumulator_ += speed_ips_ * dt;
+    int iterations = 0;
+
+    while (instr_accumulator_ >= 1.0f) {
+        save_prev_snapshot();
+        emulator.step();
+        instr_accumulator_ -= 1.0f;
+        ++iterations;
+
+        auto s = emulator.state();
+        if (s == EmulatorState::HALTED || s == EmulatorState::ERROR) break;
+
+        auto snap = emulator.snapshot();
+        if (breakpoints_.find(snap.regs.IP) != breakpoints_.end()) {
+            emulator.pause();
+            break;
+        }
+        if (iterations >= 50000) break;
+    }
+
     auto outputs = emulator.io_output();
     for (const std::string& str : outputs) {
-        for (char c : str) {
-            console.put_char(c, 0x07);
-        }
+        for (char c : str) console.put_char(c, 0x07);
     }
+    sync_state();
 }
 
 DebuggerState Debugger::get_state() const {

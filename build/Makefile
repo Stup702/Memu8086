@@ -85,6 +85,51 @@ rebuild_cache:
 rebuild_cache/fast: rebuild_cache
 .PHONY : rebuild_cache/fast
 
+# Special rule for the target list_install_components
+list_install_components:
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Available install components are: \"Unspecified\""
+.PHONY : list_install_components
+
+# Special rule for the target list_install_components
+list_install_components/fast: list_install_components
+.PHONY : list_install_components/fast
+
+# Special rule for the target install
+install: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Install the project..."
+	/usr/bin/cmake -P cmake_install.cmake
+.PHONY : install
+
+# Special rule for the target install
+install/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Install the project..."
+	/usr/bin/cmake -P cmake_install.cmake
+.PHONY : install/fast
+
+# Special rule for the target install/local
+install/local: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing only the local directory..."
+	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local
+
+# Special rule for the target install/local
+install/local/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing only the local directory..."
+	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local/fast
+
+# Special rule for the target install/strip
+install/strip: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing the project stripped..."
+	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip
+
+# Special rule for the target install/strip
+install/strip/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing the project stripped..."
+	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip/fast
+
 # The main all target
 all: cmake_check_build_system
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/stup/projects/Memu8086/build/CMakeFiles /home/stup/projects/Memu8086/build//CMakeFiles/progress.marks
@@ -154,6 +199,45 @@ memu8086_autogen: cmake_check_build_system
 memu8086_autogen/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/memu8086_autogen.dir/build.make CMakeFiles/memu8086_autogen.dir/build
 .PHONY : memu8086_autogen/fast
+
+#=============================================================================
+# Target rules for targets named fmt
+
+# Build rule for target.
+fmt: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 fmt
+.PHONY : fmt
+
+# fast build rule for target.
+fmt/fast:
+	$(MAKE) $(MAKESILENT) -f _deps/fmt-build/CMakeFiles/fmt.dir/build.make _deps/fmt-build/CMakeFiles/fmt.dir/build
+.PHONY : fmt/fast
+
+#=============================================================================
+# Target rules for targets named fmt_autogen_timestamp_deps
+
+# Build rule for target.
+fmt_autogen_timestamp_deps: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 fmt_autogen_timestamp_deps
+.PHONY : fmt_autogen_timestamp_deps
+
+# fast build rule for target.
+fmt_autogen_timestamp_deps/fast:
+	$(MAKE) $(MAKESILENT) -f _deps/fmt-build/CMakeFiles/fmt_autogen_timestamp_deps.dir/build.make _deps/fmt-build/CMakeFiles/fmt_autogen_timestamp_deps.dir/build
+.PHONY : fmt_autogen_timestamp_deps/fast
+
+#=============================================================================
+# Target rules for targets named fmt_autogen
+
+# Build rule for target.
+fmt_autogen: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 fmt_autogen
+.PHONY : fmt_autogen
+
+# fast build rule for target.
+fmt_autogen/fast:
+	$(MAKE) $(MAKESILENT) -f _deps/fmt-build/CMakeFiles/fmt_autogen.dir/build.make _deps/fmt-build/CMakeFiles/fmt_autogen.dir/build
+.PHONY : fmt_autogen/fast
 
 memu8086_autogen/UVLADIE3JM/qrc_resources.o: memu8086_autogen/UVLADIE3JM/qrc_resources.cpp.o
 .PHONY : memu8086_autogen/UVLADIE3JM/qrc_resources.o
@@ -690,9 +774,16 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... edit_cache"
+	@echo "... install"
+	@echo "... install/local"
+	@echo "... install/strip"
+	@echo "... list_install_components"
 	@echo "... rebuild_cache"
+	@echo "... fmt_autogen"
+	@echo "... fmt_autogen_timestamp_deps"
 	@echo "... memu8086_autogen"
 	@echo "... memu8086_autogen_timestamp_deps"
+	@echo "... fmt"
 	@echo "... memu8086"
 	@echo "... memu8086_autogen/UVLADIE3JM/qrc_resources.o"
 	@echo "... memu8086_autogen/UVLADIE3JM/qrc_resources.i"

@@ -15,10 +15,15 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(fmt CONFIG REQUIRED)
-find_package(nlohmann_json CONFIG REQUIRED)
+include(FetchContent)
+FetchContent_Declare(
+    fmt
+    GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+    GIT_TAG        10.1.1
+)
+FetchContent_MakeAvailable(fmt)
 
-qt_add_executable(memu8086 
+qt_add_executable(memu8086 WIN32 MACOSX_BUNDLE
     src/main.cpp
     src/ui/mainwindow.h
     src/ui/mainwindow.cpp
@@ -61,7 +66,6 @@ target_link_libraries(memu8086 PRIVATE
     Qt6::Core
     Qt6::Gui
     fmt::fmt
-    nlohmann_json::nlohmann_json
 )
 
 # Enable strict warnings based on the compiler
@@ -84,6 +88,18 @@ if(BUILD_TESTS)
         src/core/cpu.cpp src/core/cpu_exec.cpp src/core/emulator.cpp src/core/debugger.cpp
         src/core/interrupts.cpp src/core/disassembler.cpp src/assembler/assembler.cpp
     )
-    target_link_libraries(test_runner PRIVATE fmt::fmt nlohmann_json::nlohmann_json)
+    target_link_libraries(test_runner PRIVATE fmt::fmt)
     target_include_directories(test_runner PRIVATE src)
 endif()
+
+include(GNUInstallDirs)
+install(TARGETS memu8086
+    BUNDLE  DESTINATION .
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+qt_generate_deploy_app_script(
+    TARGET memu8086
+    FILENAME_VARIABLE deploy_script
+    NO_UNSUPPORTED_PLATFORM_ERROR
+)
+install(SCRIPT ${deploy_script})

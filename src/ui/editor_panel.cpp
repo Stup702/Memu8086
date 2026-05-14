@@ -8,6 +8,8 @@
 #include <QShortcut>
 #include <QToolTip>
 #include <QHelpEvent>
+#include <QWheelEvent>
+#include <QKeyEvent>
 
 namespace memu8086::ui {
 
@@ -209,6 +211,35 @@ bool EditorPanel::eventFilter(QObject* obj, QEvent* event) {
     if (obj == editor && event->type() == QEvent::Resize) {
         update_gutter_width();
     }
+    else if ((obj == editor || obj == editor->viewport()) && event->type() == QEvent::Wheel) {
+        QWheelEvent* wheelEvent = static_cast<QWheelEvent*>(event);
+        if (wheelEvent->modifiers() & Qt::ControlModifier) {
+            zoom(wheelEvent->angleDelta().y() > 0 ? 1 : -1);
+            return true;
+        }
+    }
+    else if (obj == editor && event->type() == QEvent::KeyPress) {
+        auto* ke = static_cast<QKeyEvent*>(event);
+        if (ke->modifiers() & Qt::ControlModifier) {
+            if (ke->key() == Qt::Key_Equal || ke->key() == Qt::Key_Plus) {
+                zoom(1);
+                return true; // consume — don't insert character
+            }
+            if (ke->key() == Qt::Key_Minus) {
+                zoom(-1);
+                return true;
+            }
+            if (ke->key() == Qt::Key_0) {
+                QFont f = editor->font();
+                f.setPointSize(13); // Default font size
+                editor->setFont(f);
+                QFontMetrics metrics(f);
+                editor->setTabStopDistance(4 * metrics.horizontalAdvance(' '));
+                update_gutter_width();
+                return true;
+            }
+        }
+    }
     else if (event->type() == QEvent::ToolTip) {
         QHelpEvent* helpEvent = static_cast<QHelpEvent*>(event);
         int line = -1;
@@ -238,8 +269,29 @@ bool EditorPanel::eventFilter(QObject* obj, QEvent* event) {
     }
     return QWidget::eventFilter(obj, event);
 }
+
+void EditorPanel::zoom(int delta) {
+    QFont f = editor->font();
+    int new_size = qMax(8, f.pointSize() + delta);
+    f.setPointSize(new_size);
+    editor->setFont(f);
+    QFontMetrics metrics(f);
+    editor->setTabStopDistance(metrics.horizontalAdvance(' ') * 4);
+    update_gutter_width();
+}
+
+void EditorPanel::set_font_size(int size) {
+    QFont f = editor->font();
+    f.setPointSize(qBound(8, size, 32));
+    editor->setFont(f);
+    QFontMetrics m(f);
+    editor->setTabStopDistance(4 * m.horizontalAdvance(' '));
+    update_gutter_width();
+}
+
 void EditorPanel::on_text_changed() { modified = true; emit source_modified(); on_cursor_position_changed(); }
 void EditorPanel::show_find_replace() { find_replace_widget->show(); find_input->setFocus(); }
+
 void EditorPanel::find_next() { editor->find(find_input->text()); }
 
 void EditorPanel::on_cursor_position_changed() {

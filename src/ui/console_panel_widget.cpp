@@ -25,6 +25,10 @@ ConsolePanelWidget::ConsolePanelWidget(emu8086::core::ConsoleState& state, QWidg
     resize(800, 600);
 }
 
+QSize ConsolePanelWidget::sizeHint() const {
+    return QSize(800, 600);
+}
+
 void ConsolePanelWidget::refresh() {
     QString text;
     for (int r = 0; r < 25; ++r) {

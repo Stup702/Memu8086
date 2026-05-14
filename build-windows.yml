@@ -1,0 +1,35 @@
+name: Build Windows Executable
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v4
+    
+    - name: Install Qt6
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.5.3'
+        arch: 'win64_msvc2019_64'
+        
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+      
+    - name: Build Memu8086
+      run: cmake --build build --config Release
+      
+    - name: Bundle Qt DLLs and Executable
+      run: cmake --install build --prefix deploy --config Release
+      
+    - name: Upload Windows Build
+      uses: actions/upload-artifact@v4
+      with:
+        name: memu8086-windows-release
+        path: deploy/

@@ -26,6 +26,7 @@ public:
     void set_exec_line(int line);
     void set_breakpoints(const std::set<uint16_t>& bps); // Offset based bps mapping requires logic in mainwindow, or mapping here. Assuming line-based for UI.
     void set_breakpoint_lines(const std::set<int>& lines);
+    void set_font_size(int size);
 
     void gutter_paint_event(QPaintEvent* event);
     int gutter_width();
@@ -42,6 +43,7 @@ private slots:
     void on_cursor_position_changed();
     void show_find_replace();
     void find_next();
+    void zoom(int delta);
 
 private:
     QPlainTextEdit* editor;

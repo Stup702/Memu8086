@@ -15,7 +15,7 @@ AsmHighlighter::AsmHighlighter(QTextDocument* parent)
     rules.append(rule);
 
     // Directives
-    rule.pattern = QRegularExpression(QStringLiteral("\\b(DB|DW|DD|ORG|EQU|RESB|RESW|SEGMENT|ENDS|PROC|ENDP|TIMES|\\.MODEL|\\.CODE|\\.DATA|\\.STACK)\\b"), QRegularExpression::CaseInsensitiveOption);
+    rule.pattern = QRegularExpression(QStringLiteral("\\b(DB|DW|DD|ORG|EQU|RESB|RESW|SEGMENT|ENDS|PROC|ENDP|TIMES|\\.MODEL|\\.CODE|\\.DATA|\\.STACK|ASSUME|PUBLIC|EXTRN|EXTERN|END|DUP|OFFSET|LENGTH|SIZE|TYPE|NEAR|FAR|PTR|@data|@DATA)\\b"), QRegularExpression::CaseInsensitiveOption);
     rule.format.setForeground(QColor("#FF7E7E"));
     rule.format.setFontWeight(QFont::Normal);
     rules.append(rule);

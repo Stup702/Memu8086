@@ -19,6 +19,14 @@ struct AssemblyResult {
     std::map<int, uint16_t> line_to_offset;
     std::map<uint16_t, int> offset_to_line;
     std::map<std::string, uint16_t> symbols;
+
+    uint16_t data_segment_offset = 0;
+    uint16_t code_segment_offset = 0x100;
+    bool has_model_directive = false;
+
+    std::map<std::string, int> sym_lengths;
+    std::map<std::string, int> sym_sizes;
+    std::map<std::string, int> sym_types;
 };
 
 class Assembler {

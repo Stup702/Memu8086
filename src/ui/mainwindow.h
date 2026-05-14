@@ -52,6 +52,7 @@ private:
     void setup_menu_bar();
     void setup_toolbar();
     void setup_dock_panels();
+    void reset_dock_layout();
     void setup_status_bar();
     void setup_shortcuts();
     void update_ui_state();     // sync buttons/status to debugger state
