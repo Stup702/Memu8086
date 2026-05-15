@@ -14,7 +14,7 @@ void ConsoleState::put_char(char c, uint8_t attr) {
         cursor_y++;
     } else if (c == '\t') {
         cursor_x = (cursor_x / 8 + 1) * 8;
-        if (cursor_x >= COLS) {
+        if (cursor_x >= cols) {
             cursor_x = 0;
             cursor_y++;
         }
@@ -27,37 +27,37 @@ void ConsoleState::put_char(char c, uint8_t attr) {
     } else if (c == '\f' || c == 0x0C) {
         clear_screen(attr);
     } else {
-        if (cursor_x >= COLS) {
+        if (cursor_x >= cols) {
             cursor_x = 0;
             cursor_y++;
         }
-        if (cursor_y >= ROWS) {
+        if (cursor_y >= rows) {
             scroll_up(1);
-            cursor_y = ROWS - 1;
+            cursor_y = rows - 1;
         }
         screen[cursor_y][cursor_x] = c;
         color[cursor_y][cursor_x] = attr;
         cursor_x++;
     }
 
-    if (cursor_y >= ROWS) {
+    if (cursor_y >= rows) {
         scroll_up(1);
-        cursor_y = ROWS - 1;
+        cursor_y = rows - 1;
     }
 }
 
 void ConsoleState::scroll_up(int lines) {
     if (lines <= 0) return;
     if (on_scroll_up) on_scroll_up();
-    if (lines >= ROWS) {
+    if (lines >= rows) {
         clear_screen(0x07);
         return;
     }
-    int move_rows = ROWS - lines;
-    std::memmove(screen[0], screen[lines], move_rows * COLS);
-    std::memmove(color[0], color[lines], move_rows * COLS);
-        std::memset(screen[move_rows], 0x20, lines * COLS);
-    std::memset(color[move_rows], 0x07, lines * COLS);
+    int move_rows = rows - lines;
+    std::memmove(screen[0], screen[lines], move_rows * MAX_COLS);
+    std::memmove(color[0], color[lines], move_rows * MAX_COLS);
+    std::memset(screen[move_rows], 0x20, lines * MAX_COLS);
+    std::memset(color[move_rows], 0x07, lines * MAX_COLS);
 }
 
 void ConsoleState::clear_screen(uint8_t attr) {
@@ -68,8 +68,15 @@ void ConsoleState::clear_screen(uint8_t attr) {
 }
 
 void ConsoleState::set_cursor(int row, int col) {
-        cursor_y = std::clamp(row, 0, ROWS - 1);
-        cursor_x = std::clamp(col, 0, COLS - 1);
+    cursor_y = std::clamp(row, 0, rows - 1);
+    cursor_x = std::clamp(col, 0, cols - 1);
+}
+
+void ConsoleState::resize(int new_cols, int new_rows) {
+    cols = std::clamp(new_cols, 10, MAX_COLS);
+    rows = std::clamp(new_rows, 10, MAX_ROWS);
+    if (cursor_x >= cols) cursor_x = cols - 1;
+    if (cursor_y >= rows) cursor_y = rows - 1;
 }
 
 // --- Debugger Implementation ---

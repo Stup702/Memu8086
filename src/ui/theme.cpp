@@ -50,6 +50,7 @@ void save_config(const QString& path) {
     lay["var_w"] = layout.var_w; lay["var_h"] = layout.var_h;
     lay["ed_h"] = layout.ed_h; lay["mem_h"] = layout.mem_h;
     lay["stack_h"] = layout.stack_h;
+    lay["console_h"] = layout.console_h;
 
     QJsonObject root; root["colors"] = colors; root["layout"] = lay;
     QFile file(path);
@@ -103,6 +104,7 @@ void load_config(const QString& path) {
             if (l.contains("ed_h")) layout.ed_h = l["ed_h"].toInt();
             if (l.contains("mem_h")) layout.mem_h = l["mem_h"].toInt();
             if (l.contains("stack_h")) layout.stack_h = l["stack_h"].toInt();
+                if (l.contains("console_h")) layout.console_h = l["console_h"].toInt();
         }
     }
 }

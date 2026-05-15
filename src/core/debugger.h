@@ -20,10 +20,12 @@ struct CPUSnapshot {
 };
 
 struct ConsoleState {
-    static constexpr int COLS = 80;
-    static constexpr int ROWS = 25;
-    uint8_t screen[ROWS][COLS]{};
-    uint8_t color[ROWS][COLS]{};
+    static constexpr int MAX_COLS = 256;
+    static constexpr int MAX_ROWS = 256;
+    int cols = 80;
+    int rows = 25;
+    uint8_t screen[MAX_ROWS][MAX_COLS]{};
+    uint8_t color[MAX_ROWS][MAX_COLS]{};
     int cursor_x = 0, cursor_y = 0;
     bool waiting_for_input = false;
     std::string input_buffer;
@@ -34,6 +36,7 @@ struct ConsoleState {
     void scroll_up(int lines = 1);
     void clear_screen(uint8_t attr = 0x07);
     void set_cursor(int row, int col);
+    void resize(int new_cols, int new_rows);
 };
 
 class Debugger {

@@ -34,7 +34,7 @@ void EditorPanel::setup_editor() {
 
     editor = new QPlainTextEdit(this);
     editor->setFont(Theme::mono_font(20));
-    editor->setLineWrapMode(QPlainTextEdit::NoWrap);
+    editor->setLineWrapMode(QPlainTextEdit::WidgetWidth);
     
     highlighter = new AsmHighlighter(editor->document());
     gutter = new LineNumberArea(this, editor);

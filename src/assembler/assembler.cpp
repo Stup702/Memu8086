@@ -162,10 +162,11 @@ void parse_memory(std::string e, int& mod, int& rm, int& disp, const AssemblyRes
 Operand parse_operand(std::string s, const AssemblyResult& res, bool& ok) {
     Operand op;
     s = trim(s);
-    if (s.substr(0, 8) == "BYTE PTR") { op.word = false; s = trim(s.substr(8)); }
-    else if (s.substr(0, 8) == "WORD PTR") { op.word = true;  s = trim(s.substr(8)); }
-    else if (s.substr(0, 7) == "BYTEPTR") { op.word = false; s = trim(s.substr(7)); }
-    else if (s.substr(0, 7) == "WORDPTR") { op.word = true;  s = trim(s.substr(7)); }
+    bool explicit_size = false;
+    if (s.substr(0, 8) == "BYTE PTR") { op.word = false; explicit_size = true; s = trim(s.substr(8)); }
+    else if (s.substr(0, 8) == "WORD PTR") { op.word = true;  explicit_size = true; s = trim(s.substr(8)); }
+    else if (s.substr(0, 7) == "BYTEPTR") { op.word = false; explicit_size = true; s = trim(s.substr(7)); }
+    else if (s.substr(0, 7) == "WORDPTR") { op.word = true;  explicit_size = true; s = trim(s.substr(7)); }
 
     if (s.substr(0, 9) == "NEAR PTR ") { s = trim(s.substr(9)); }
     else if (s.substr(0, 8) == "FAR PTR ") { s = trim(s.substr(8)); }
@@ -188,9 +189,37 @@ Operand parse_operand(std::string s, const AssemblyResult& res, bool& ok) {
     if (s == "ES") { op.type = Operand::SEG; op.val = 0; return op; }
     if (s == "SS") { op.type = Operand::SEG; op.val = 2; return op; }
 
-    if (!s.empty() && s[0] == '[') {
+    // Handle array indexing (e.g. name[bx] -> [name+bx])
+    size_t lbracket = s.find('[');
+    size_t rbracket = s.find(']');
+    if (lbracket != std::string::npos && rbracket != std::string::npos && rbracket > lbracket) {
         op.type = Operand::MEM;
+        std::string prefix = trim(s.substr(0, lbracket));
+        std::string inside = trim(s.substr(lbracket + 1, rbracket - lbracket - 1));
+        std::string suffix = trim(s.substr(rbracket + 1));
+        
+        if (!prefix.empty() && res.sym_types.count(prefix)) {
+            if (!explicit_size) op.word = (res.sym_types.at(prefix) != 1);
+        }
+        
+        std::string combined = prefix;
+        if (!combined.empty() && combined.back() != '+' && combined.back() != '-' && 
+            !inside.empty() && inside[0] != '+' && inside[0] != '-') combined += "+";
+        combined += inside;
+        if (!combined.empty() && combined.back() != '+' && combined.back() != '-' && 
+            !suffix.empty() && suffix[0] != '+' && suffix[0] != '-') combined += "+";
+        combined += suffix;
+        
+        s = "[" + combined + "]";
         parse_memory(s, op.mod, op.rm, op.disp, res, ok);
+        return op;
+    }
+    
+    // Handle implicit memory variables (e.g. mov bl, len -> mov bl, [len])
+    if (res.sym_types.count(s)) {
+        op.type = Operand::MEM;
+        if (!explicit_size) op.word = (res.sym_types.at(s) != 1);
+        parse_memory("[" + s + "]", op.mod, op.rm, op.disp, res, ok);
         return op;
     }
 
@@ -434,7 +463,6 @@ void encode_instruction(const std::string& label, const std::string& mnemonic, c
     }
 
     if (mnemonic == "XCHG") {
-        bool word = (op1.type == Operand::REG16 || op2.type == Operand::REG16 || op1.word);
         if (op1.type == Operand::REG16 && op2.type == Operand::REG16 && (op1.val == 0 || op2.val == 0)) {
             int reg = (op1.val == 0) ? op2.val : op1.val;
             emit8(code, 0x90 | reg);
@@ -530,7 +558,6 @@ AssemblyResult Assembler::assemble(const std::string& source, uint16_t origin) {
     };
 
     int prev_code_size = 0;
-    int prev_data_size = 0;
 
     // 3 passes: allows resolving forward jumps shrinking from near (3b) to short (2b) cleanly.
     int passes = 3; 
@@ -605,7 +632,6 @@ AssemblyResult Assembler::assemble(const std::string& source, uint16_t origin) {
         }
         
         prev_code_size = code_LC - origin;
-        prev_data_size = data_LC - (origin + prev_code_size);
         
         if (is_pass2) {
             res.machine_code = code_bytes;

@@ -41,9 +41,9 @@ protected:
         int ascent = fm.ascent();
         
         p.setPen(QColor("#CCCCCC"));
-        for (int r = 0; r < 25; ++r) {
+        for (int r = 0; r < state.rows; ++r) {
             QString line;
-            for (int c = 0; c < 80; ++c) {
+            for (int c = 0; c < state.cols; ++c) {
                 char ch = state.screen[r][c];
                 line += (ch >= 32 && ch < 127) ? QChar(ch) : QChar(' ');
             }
@@ -53,7 +53,7 @@ protected:
         if (hasFocus() && cursor_blink) {
             int cx = state.cursor_x;
             int cy = state.cursor_y;
-            if (cx >= 0 && cx < 80 && cy >= 0 && cy < 25) {
+            if (cx >= 0 && cx < state.cols && cy >= 0 && cy < state.rows) {
                 p.fillRect(cx * char_w + 4, cy * char_h + 4, char_w, char_h, QColor("#CCCCCC"));
                 char under = state.screen[cy][cx];
                 if (under >= 32 && under < 127) {
@@ -109,6 +109,14 @@ protected:
         setFocus();
     }
     
+    void resizeEvent(QResizeEvent* event) override {
+        QPlainTextEdit::resizeEvent(event);
+        QFontMetrics fm(Theme::mono_font(14));
+        int new_cols = (viewport()->width() - 8) / fm.horizontalAdvance('0');
+        int new_rows = (viewport()->height() - 8) / fm.height();
+        state.resize(new_cols, new_rows);
+    }
+    
 private:
     emu8086::core::ConsoleState& state;
     ConsolePanelWidget* panel;
@@ -132,9 +140,9 @@ QSize ConsolePanelWidget::sizeHint() const {
 
 void ConsolePanelWidget::refresh() {
     QString text;
-    for (int r = 0; r < 25; ++r) {
+    for (int r = 0; r < state.rows; ++r) {
         QString line;
-        for (int c = 0; c < 80; ++c) {
+        for (int c = 0; c < state.cols; ++c) {
             char ch = state.screen[r][c];
             line += (ch >= 32 && ch < 127) ? QChar(ch) : QChar(' ');
         }
