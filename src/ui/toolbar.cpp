@@ -14,6 +14,13 @@ Toolbar::Toolbar(QWidget* parent) : QToolBar(parent) {
     setFloatable(false);
 
     btn_assemble  = make_tool_button("▶▶", "Assemble",  "F5",  "btn_assemble");
+    QToolButton* btn_assemble_run = make_tool_button("⚙▶", "Assemble & Run", "F6", "btn_assemble_run");
+    connect(btn_assemble_run, &QToolButton::clicked, this, [this]() {
+        emit stop_clicked();
+        emit assemble_clicked();
+        emit run_clicked();
+    });
+
     btn_run       = make_tool_button("▶",  "Run",       "F9",  "btn_run");
     btn_stop      = make_tool_button("⏸",  "Stop",      "Esc", "btn_stop");
     btn_step      = make_tool_button("↓",  "Step",      "F7",  "btn_step");
@@ -46,6 +53,7 @@ Toolbar::Toolbar(QWidget* parent) : QToolBar(parent) {
     lbl_cycles->setStyleSheet(QStringLiteral("color: %1;").arg(Theme::Color::TEXT_MUTED));
 
     addWidget(btn_assemble);
+    addWidget(btn_assemble_run);
     addWidget(btn_run);
     addWidget(btn_stop);
     addWidget(btn_step);
@@ -76,18 +84,9 @@ Toolbar::Toolbar(QWidget* parent) : QToolBar(parent) {
 QToolButton* Toolbar::make_tool_button(const QString& icon_text, const QString& text, const QString& shortcut, const QString& obj_name) {
     QToolButton* btn = new QToolButton(this);
     btn->setObjectName(obj_name);
-    btn->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    btn->setToolButtonStyle(Qt::ToolButtonTextOnly);
     
-    QString icon_id = obj_name;
-    icon_id.replace("btn_", "");
-    QIcon icon(QStringLiteral(":/assets/icons/%1.svg").arg(icon_id));
-    
-    if (!icon.isNull()) {
-        btn->setIcon(icon);
-        btn->setText(text);
-    } else {
-        btn->setText(icon_text + " " + text); // Fallback to character icon if SVG missing
-    }
+    btn->setText(icon_text + " " + text);
     
     if (!shortcut.isEmpty()) {
         btn->setToolTip(QStringLiteral("%1 (%2)").arg(text, shortcut));
@@ -139,8 +138,14 @@ void Toolbar::set_state(emu8086::core::DebuggerState state, bool source_modified
 
     if (source_modified && !assembled) {
         btn_assemble->setStyleSheet(QStringLiteral("color: %1;").arg(Theme::Color::WARNING));
+        if (auto* btn_ar = findChild<QToolButton*>("btn_assemble_run")) {
+            btn_ar->setStyleSheet(QStringLiteral("color: %1;").arg(Theme::Color::WARNING));
+        }
     } else {
         btn_assemble->setStyleSheet(""); // Normal / Reset
+        if (auto* btn_ar = findChild<QToolButton*>("btn_assemble_run")) {
+            btn_ar->setStyleSheet("");
+        }
     }
 
     if (state != emu8086::core::DebuggerState::RUNNING) {

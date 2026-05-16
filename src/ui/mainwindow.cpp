@@ -67,9 +67,9 @@ public:
                         }
                         if (dr && de) mainWin->resizeDocks({dr, de}, {Theme::layout.reg_w, Theme::layout.ed_w}, Qt::Horizontal);
                         if (de && dv) mainWin->resizeDocks({de, dv}, {Theme::layout.var_w, Theme::layout.var_h}, Qt::Horizontal);
-                        if (de && dm) mainWin->resizeDocks({de, dm}, {Theme::layout.ed_h, Theme::layout.mem_h}, Qt::Vertical);
-                        if (dv && ds) mainWin->resizeDocks({dv, ds}, {Theme::layout.ed_h, Theme::layout.stack_h}, Qt::Vertical);
-                        if (dr && dc) mainWin->resizeDocks({dr, dc}, {Theme::layout.ed_h, Theme::layout.console_h}, Qt::Vertical);
+                        if (dr && ds) mainWin->resizeDocks({dr, ds}, {Theme::layout.ed_h, Theme::layout.stack_h}, Qt::Vertical);
+                        if (de && dc) mainWin->resizeDocks({de, dc}, {Theme::layout.ed_h, Theme::layout.console_h}, Qt::Vertical);
+                        if (dv && dm) mainWin->resizeDocks({dv, dm}, {Theme::layout.ed_h, Theme::layout.mem_h}, Qt::Vertical);
                     });
                 }
             });
@@ -265,7 +265,17 @@ void MainWindow::setup_dock_panels() {
     
     dock_console = new QDockWidget("Console", this);
     dock_console->setWidget(new DockContentWrapper(console_panel, dock_console));
-    dock_console->setTitleBarWidget(new TextTitleBar("Console", dock_console));
+    
+    TextTitleBar* console_title = new TextTitleBar("Console", dock_console);
+    QPushButton* btn_clear = new QPushButton("Clear", console_title);
+    btn_clear->setCursor(Qt::PointingHandCursor);
+    connect(btn_clear, &QPushButton::clicked, console_panel, [this]() {
+        this->console.clear_screen();
+        this->console_panel->refresh();
+    });
+    static_cast<QHBoxLayout*>(console_title->layout())->insertWidget(2, btn_clear);
+    
+    dock_console->setTitleBarWidget(console_title);
     dock_console->setObjectName("dock_console");
 }
 
@@ -280,9 +290,9 @@ void MainWindow::reset_dock_layout() {
     
     splitDockWidget(dock_registers, dock_editor, Qt::Horizontal);
     splitDockWidget(dock_editor, dock_variables, Qt::Horizontal);
-    splitDockWidget(dock_editor, dock_memory, Qt::Vertical);
-    splitDockWidget(dock_variables, dock_stack, Qt::Vertical);
-    splitDockWidget(dock_registers, dock_console, Qt::Vertical);
+    splitDockWidget(dock_registers, dock_stack, Qt::Vertical);
+    splitDockWidget(dock_editor, dock_console, Qt::Vertical);
+    splitDockWidget(dock_variables, dock_memory, Qt::Vertical);
 
     dock_console->setFloating(false); // Dock by default
 
@@ -296,9 +306,9 @@ void MainWindow::reset_dock_layout() {
     QTimer::singleShot(50, this, [this]() {
         resizeDocks({dock_registers, dock_editor}, {Theme::layout.reg_w, Theme::layout.ed_w}, Qt::Horizontal);
         resizeDocks({dock_editor, dock_variables}, {Theme::layout.var_w, Theme::layout.var_h}, Qt::Horizontal);
-        resizeDocks({dock_editor, dock_memory}, {Theme::layout.ed_h, Theme::layout.mem_h}, Qt::Vertical);
-        resizeDocks({dock_variables, dock_stack}, {Theme::layout.ed_h, Theme::layout.stack_h}, Qt::Vertical);
-        resizeDocks({dock_registers, dock_console}, {Theme::layout.ed_h, Theme::layout.console_h}, Qt::Vertical);
+        resizeDocks({dock_registers, dock_stack}, {Theme::layout.ed_h, Theme::layout.stack_h}, Qt::Vertical);
+        resizeDocks({dock_editor, dock_console}, {Theme::layout.ed_h, Theme::layout.console_h}, Qt::Vertical);
+        resizeDocks({dock_variables, dock_memory}, {Theme::layout.ed_h, Theme::layout.mem_h}, Qt::Vertical);
     });
 }
 
@@ -355,6 +365,11 @@ void MainWindow::setup_menu_bar() {
 
     QMenu* emu_menu = menuBar()->addMenu("Emulator");
     emu_menu->addAction("Assemble", QKeySequence(Qt::Key_F5), this, &MainWindow::on_assemble);
+    emu_menu->addAction("Assemble & Run", QKeySequence(Qt::Key_F6), this, [this]() {
+        on_stop();
+        on_assemble();
+        if (assembled && dbg.get_state() != emu8086::core::DebuggerState::RUNNING) on_run();
+    });
     emu_menu->addAction("Run", QKeySequence(Qt::Key_F9), this, &MainWindow::on_run);
     emu_menu->addAction("Step", QKeySequence(Qt::Key_F7), this, &MainWindow::on_step);
     emu_menu->addAction("Step Over", QKeySequence(Qt::Key_F8), this, &MainWindow::on_step_over);

@@ -36,7 +36,6 @@ protected:
         p.setFont(font);
         
         QFontMetrics fm(font);
-        int char_w = fm.horizontalAdvance('0');
         int char_h = fm.height();
         int ascent = fm.ascent();
         
@@ -53,12 +52,25 @@ protected:
         if (hasFocus() && cursor_blink) {
             int cx = state.cursor_x;
             int cy = state.cursor_y;
-            if (cx >= 0 && cx < state.cols && cy >= 0 && cy < state.rows) {
-                p.fillRect(cx * char_w + 4, cy * char_h + 4, char_w, char_h, QColor("#CCCCCC"));
-                char under = state.screen[cy][cx];
-                if (under >= 32 && under < 127) {
+            if (cx >= 0 && cx <= state.cols && cy >= 0 && cy < state.rows) {
+                // Mathematically calculate the exact string width up to the cursor to guarantee perfect alignment!
+                QString text_before;
+                int calc_cx = qMin(cx, state.cols);
+                for (int c = 0; c < calc_cx; ++c) {
+                    char ch = state.screen[cy][c];
+                    text_before += (ch >= 32 && ch < 127) ? QChar(ch) : QChar(' ');
+                }
+                int cursor_px = 4 + fm.horizontalAdvance(text_before);
+                
+                char under = (cx < state.cols) ? state.screen[cy][cx] : ' ';
+                QChar under_char = (under >= 32 && under < 127) ? QChar(under) : QChar(' ');
+                int cursor_w = fm.horizontalAdvance(under_char);
+                if (cursor_w == 0) cursor_w = fm.horizontalAdvance(QLatin1Char('0'));
+
+                p.fillRect(cursor_px, cy * char_h + 4, cursor_w, char_h, QColor("#CCCCCC"));
+                if (under_char != ' ') {
                     p.setPen(QColor("#0C0C0C"));
-                    p.drawText(cx * char_w + 4, cy * char_h + ascent + 4, QString(QChar(under)));
+                    p.drawText(cursor_px, cy * char_h + ascent + 4, QString(under_char));
                 }
             }
         }

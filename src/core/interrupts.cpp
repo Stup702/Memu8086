@@ -159,7 +159,7 @@ bool InterruptHandler::handle(uint8_t interrupt_number) {
                     uint8_t count = 0;
                     
                     uint8_t writable = (max_chars > 0) ? (max_chars - 1) : 0;
-                    while (count < writable) {
+                    while (true) {
                         char c = wait_and_read_key();
                         if (c == '\0') break; // Sentinel check: abort if emulator was stopped
                         if (c == '\r' || c == '\n') {
@@ -172,7 +172,7 @@ bool InterruptHandler::handle(uint8_t interrupt_number) {
                                 count--;
                                 io.write_char('\b'); io.write_char(' '); io.write_char('\b');
                             }
-                        } else {
+                        } else if (count < writable) {
                             cpu.mem.write8(addr + 2 + count, c);
                             count++;
                             io.write_char(c);
