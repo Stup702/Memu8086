@@ -1,0 +1,43 @@
+{
+    "colors": {
+        "ACCENT": "#4A9EFF",
+        "ACCENT_HOVER": "#6DB3FF",
+        "ACCENT_PRESSED": "#3A8EEF",
+        "ACTIVE": "#353A5C",
+        "ALT_BG": "#1E2030",
+        "BG": "#1C1E26",
+        "BORDER": "#353A5C",
+        "BREAKPOINT": "#FF4F4F",
+        "CURRENT_LINE": "#292B38",
+        "EDITOR_BG": "#141620",
+        "EDITOR_STATUS_BG": "#2A2D45",
+        "EDITOR_STATUS_TEXT": "#6B6D80",
+        "ERROR": "#FF5A5A",
+        "EXEC_LINE": "#2D5A2D",
+        "HEADER": "#2A2D45",
+        "MEM_ZERO": "#3A3C50",
+        "PANEL": "#22243A",
+        "REG_CHANGED": "#4AFF8C",
+        "SYN_COMMENT": "#6B7D6A",
+        "SYN_DIRECTIVE": "#FF7E7E",
+        "SYN_LABEL": "#C984FF",
+        "SYN_MNEMONIC": "#4A9EFF",
+        "SYN_NUMBER": "#B5EAD7",
+        "SYN_REGISTER": "#FF9E64",
+        "SYN_STRING": "#F7C948",
+        "TEXT": "#C8C9D4",
+        "TEXT_DIM": "#44465A",
+        "TEXT_MUTED": "#6B6D80",
+        "WARNING": "#FFB347"
+    },
+    "layout": {
+        "console_h": 250,
+        "ed_h": 550,
+        "ed_w": 920,
+        "mem_h": 250,
+        "reg_w": 280,
+        "stack_h": 250,
+        "var_h": 320,
+        "var_w": 600
+    }
+}
