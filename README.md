@@ -28,6 +28,10 @@ A modern, cross-platform Intel 8086 emulator and assembler with a rich graphical
 
 *(Note: The `fmt` library is required but will be automatically downloaded and configured by CMake).*
 
+## Download (Install & Run)
+
+If you don't want to build from source, you can download the pre-compiled binaries for Windows, macOS, and Linux from the Releases page. Extract or install the package for your OS, and run the `memu8086` executable.
+
 ## Building from Source
 
 ### 1. Clone the repository

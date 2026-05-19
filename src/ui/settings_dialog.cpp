@@ -61,11 +61,13 @@ SettingsDialog::SettingsDialog(QWidget* parent) : QDialog(parent) {
     theme_combo = new QComboBox(this);
     theme_combo->addItem("Dark");
     theme_combo->addItem("Light");
+    
     QDir dir("themes");
-    if (dir.exists()) {
-        for (const QString& file : dir.entryList({"*.json"}, QDir::Files)) {
-            theme_combo->addItem("themes/" + file);
-        }
+    if (!dir.exists()) {
+        dir.mkpath("."); // Automatically create the 'themes' directory if it doesn't exist
+    }
+    for (const QString& file : dir.entryList({"*.json"}, QDir::Files)) {
+        theme_combo->addItem("themes/" + file);
     }
     theme_layout->addRow("Active Theme:", theme_combo);
     tabs->addTab(theme_tab, "Theme");

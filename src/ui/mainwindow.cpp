@@ -1,5 +1,5 @@
 // memu8086
-// Copyright (C) 2026 The memu8086 Authors
+// Copyright (C) 2026 Animesh Barua Mugdha
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -380,6 +380,9 @@ void MainWindow::setup_menu_bar() {
         s.setValue("geometry", saveGeometry());
         s.setValue("windowState", saveState());
         s.setValue("layout_user_saved", true);
+        
+        qDebug() << "GEOMETRY:" << saveGeometry().toBase64();
+        qDebug() << "STATE:" << saveState().toBase64();
     });
 
     connect(act_reset_layout, &QAction::triggered, this, [this]() {
@@ -722,6 +725,10 @@ void MainWindow::show_settings() {
         QSettings s("memu8086", "memu8086");
         int font_size = s.value("editor/font_size", 13).toInt();
         editor->set_font_size(font_size);
+        
+        // Give the window a "fresh jerk" to ensure all theme changes propagate
+        this->hide();
+        this->show();
     });
     dlg.exec();
 }

@@ -1,5 +1,5 @@
 # memu8086
-# Copyright (C) 2026 The memu8086 Authors
+# Copyright (C) 2026 Animesh Barua Mugdha
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -122,3 +122,20 @@ if(COMMAND qt_generate_deploy_app_script)
     )
     install(SCRIPT "${deploy_script}")
 endif()
+
+# --- CPack Packaging Configuration ---
+set(CPACK_PACKAGE_NAME "memu8086")
+set(CPACK_PACKAGE_VENDOR "Animesh Barua Mugdha")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A modern Intel 8086 emulator and assembler.")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+
+if(WIN32)
+    set(CPACK_GENERATOR "ZIP") # Creates a portable Windows ZIP
+elseif(APPLE)
+    set(CPACK_GENERATOR "DragNDrop") # Creates a macOS .dmg installer
+else()
+    set(CPACK_GENERATOR "DEB;TGZ") # Creates a Debian .deb and a portable Linux .tar.gz
+    set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Animesh Barua Mugdha")
+endif()
+
+include(CPack)
