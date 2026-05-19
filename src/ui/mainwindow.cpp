@@ -157,17 +157,26 @@ MainWindow::MainWindow(emu8086::core::CPU& cpu, emu8086::assembler::Assembler& a
     setup_status_bar();
     setup_shortcuts();
 
+    
     // Breakpoint wiring
     connect(editor, &EditorPanel::breakpoint_toggled, [this](int line) {
-        // Convert source line → IP address using debug symbol info (approximate: use line as index)
-        // For now toggle by line number heuristic
-        uint16_t addr = line; // placeholder: replace with real line→addr mapping
-        if (this->dbg.has_breakpoint(addr)) this->dbg.remove_breakpoint(addr);
-        else this->dbg.add_breakpoint(addr);
+        if (!this->assembled || !this->last_output.line_to_offset.count(line)) return;
+        
+        uint16_t addr = this->last_output.line_to_offset.at(line);
+        if (this->dbg.has_breakpoint(addr)) {
+            this->dbg.remove_breakpoint(addr);
+        } else {
+            this->dbg.add_breakpoint(addr);
+        }
         
         std::set<int> bp_lines;
-        for (auto bp : this->dbg.get_breakpoints()) bp_lines.insert(bp);
+        for (auto bp : this->dbg.get_breakpoints()) {
+            if (this->last_output.offset_to_line.count(bp)) {
+                bp_lines.insert(this->last_output.offset_to_line.at(bp));
+            }
+        }
         editor->set_breakpoint_lines(bp_lines);
+
     });
 
     // Speed wiring
@@ -494,6 +503,15 @@ void MainWindow::on_assemble() {
         if (last_output.offset_to_line.count(cpu.regs.IP)) {
             editor->set_exec_line(last_output.offset_to_line.at(cpu.regs.IP));
         }
+        
+        // Re-synchronize breakpoints visually with the newly loaded mapping!
+        std::set<int> bp_lines;
+        for (auto bp : dbg.get_breakpoints()) {
+            if (last_output.offset_to_line.count(bp)) {
+                bp_lines.insert(last_output.offset_to_line.at(bp));
+            }
+        }
+        editor->set_breakpoint_lines(bp_lines);
     } else {
         assembled = false;
         // show error count in status
@@ -513,6 +531,9 @@ void MainWindow::on_run() {
 
 void MainWindow::on_stop() { 
     dbg.stop(); 
+    assembled = false;
+    editor->set_exec_line(-1);
+    refresh_panels();
     update_ui_state(); 
 }
 

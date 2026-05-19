@@ -121,7 +121,8 @@ bool CPU::calc_parity(uint8_t val) {
 void CPU::update_flags_logical(uint16_t result, bool word) {
     regs.flags.CF = false;
     regs.flags.OF = false;
-    regs.flags.ZF = (result == 0);
+    uint16_t r = word ? result : (result & 0xFF);
+    regs.flags.ZF = (r == 0);
     regs.flags.SF = word ? (result & 0x8000) != 0 : (result & 0x80) != 0;
     regs.flags.PF = calc_parity(static_cast<uint8_t>(result & 0xFF));
 }
@@ -129,15 +130,25 @@ void CPU::update_flags_logical(uint16_t result, bool word) {
 // Update flags after an addition operation
 void CPU::update_flags_add(uint32_t a, uint32_t b, uint32_t result, bool word) {
     regs.flags.CF = word ? (result > 0xFFFF) : (result > 0xFF);
-    uint16_t mask = word ? 0x8000 : 0x80;
+    uint32_t mask = word ? 0x8000 : 0x80;
     regs.flags.OF = ((a ^ result) & (b ^ result) & mask) != 0;
+    uint32_t r = word ? (result & 0xFFFF) : (result & 0xFF);
+    regs.flags.ZF = (r == 0);
+    regs.flags.SF = (r & mask) != 0;
+    regs.flags.PF = calc_parity(result & 0xFF);
+    regs.flags.AF = ((a ^ b ^ result) & 0x10) != 0;
 }
 
 // Update flags after a subtraction operation
 void CPU::update_flags_sub(uint32_t a, uint32_t b, uint32_t result, bool word) {
-    regs.flags.CF = b > a; // unsigned borrow
-    uint16_t mask = word ? 0x8000 : 0x80;
+    regs.flags.CF = word ? (result & 0x10000) != 0 : (result & 0x100) != 0;
+    uint32_t mask = word ? 0x8000 : 0x80;
     regs.flags.OF = ((a ^ b) & (a ^ result) & mask) != 0;
+    uint32_t r = word ? (result & 0xFFFF) : (result & 0xFF);
+    regs.flags.ZF = (r == 0);
+    regs.flags.SF = (r & mask) != 0;
+    regs.flags.PF = calc_parity(result & 0xFF);
+    regs.flags.AF = ((a ^ b ^ result) & 0x10) != 0;
 }
 
 } // namespace emu8086::core

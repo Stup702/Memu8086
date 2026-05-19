@@ -146,7 +146,8 @@ bool InterruptHandler::handle(uint8_t interrupt_number) {
                     break;
                 case 0x09: { // Print string
                     uint32_t addr = cpu.ds_addr(cpu.regs.DX);
-                    while (true) {
+                int safety_limit = 0xFFFF;
+                    while (safety_limit-- > 0) {
                         char c = static_cast<char>(cpu.mem.read8(addr++));
                         if (c == '$') break;
                         io.write_char(c);
@@ -206,7 +207,7 @@ bool InterruptHandler::handle(uint8_t interrupt_number) {
             char buf[64];
             snprintf(buf, sizeof(buf), "Unimplemented INT %02Xh", interrupt_number);
             warnings.push_back(std::string(buf));
-            return true;
+            return false;
         }
     }
 }

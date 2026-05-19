@@ -124,11 +124,13 @@ void Debugger::run() {
 
 void Debugger::stop() {
     emulator.stop();
+    emulator.send_key('\0'); // Poison-pill: wake up any DOS interrupts stuck in wait_and_read_key()!
     sync_state();
 }
 
 void Debugger::reset() {
     emulator.stop();
+    emulator.send_key('\0'); // Poison-pill: wake up any DOS interrupts stuck in wait_and_read_key()!
     console.clear_screen();
     console.input_buffer.clear();
     console.waiting_for_input = false;

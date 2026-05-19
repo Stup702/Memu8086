@@ -124,11 +124,11 @@ void Executor::alu_op(uint8_t op_type, bool word, uint32_t v1, uint32_t v2, uint
             break;
         case 2: // ADC
             out_res = v1 + v2 + (cpu.regs.flags.CF ? 1 : 0);
-            cpu.update_flags_add(v1, v2 + (cpu.regs.flags.CF ? 1 : 0), out_res, word);
+            cpu.update_flags_add(v1, v2, out_res, word);
             break;
         case 3: // SBB
             out_res = v1 - v2 - (cpu.regs.flags.CF ? 1 : 0);
-            cpu.update_flags_sub(v1, v2 + (cpu.regs.flags.CF ? 1 : 0), out_res, word);
+            cpu.update_flags_sub(v1, v2, out_res, word);
             break;
         case 4: // AND
             out_res = v1 & v2;
@@ -186,6 +186,7 @@ ExecResult Executor::step() {
             case 0x2E: seg_override = cpu.regs.CS; break;
             case 0x36: seg_override = cpu.regs.SS; break;
             case 0x3E: seg_override = cpu.regs.DS; break;
+            case 0xF0: break; // LOCK prefix (no-op in basic emulator)
             case 0xF3: rep = true; repz = true; break;
             case 0xF2: rep = true; repnz = true; break;
             default: prefix = false; break;
@@ -195,12 +196,12 @@ ExecResult Executor::step() {
     uint8_t op = last_opcode;
 
     // --- Arithmetic & Logic (0x00 - 0x3F) ---
-    if (op < 0x40) {
+    if (op < 0x40 && (op & 0x07) < 0x06) {
         uint8_t op_type = (op >> 3) & 7;
         bool dir = (op >> 1) & 1;
         bool word = op & 1;
         
-        if ((op & 0xC) == 0x4) { // AL/AX immediate accumulator short forms
+        if ((op & 0x06) == 0x04) { // AL/AX immediate accumulator short forms
             uint32_t v1 = word ? cpu.regs.AX : cpu.regs.AL();
             uint32_t v2 = word ? fetch16() : fetch8();
             uint32_t res; bool wb;
@@ -226,6 +227,16 @@ ExecResult Executor::step() {
     }
 
     switch (op) {
+        case 0x06: case 0x0E: case 0x16: case 0x1E: { // PUSH seg
+            cpu.regs.SP -= 2;
+            cpu.mem.write16(cpu.ss_sp(), *get_seg_reg((op >> 3) & 3));
+            break;
+        }
+        case 0x07: case 0x0F: case 0x17: case 0x1F: { // POP seg
+            *get_seg_reg((op >> 3) & 3) = cpu.mem.read16(cpu.ss_sp());
+            cpu.regs.SP += 2;
+            break;
+        }
         // --- Arithmetic & Reg Access ---
         case 0x40: case 0x41: case 0x42: case 0x43: case 0x44: case 0x45: case 0x46: case 0x47: { // INC reg16
             uint16_t& reg = *get_reg16(op & 7);
@@ -251,8 +262,9 @@ ExecResult Executor::step() {
             break;
         }
         case 0x58: case 0x59: case 0x5A: case 0x5B: case 0x5C: case 0x5D: case 0x5E: case 0x5F: { // POP reg16
-            *get_reg16(op & 7) = cpu.mem.read16(cpu.ss_sp());
+            uint16_t val = cpu.mem.read16(cpu.ss_sp());
             cpu.regs.SP += 2;
+            *get_reg16(op & 7) = val;
             break;
         }
         case 0x68: { // PUSH imm16
@@ -329,6 +341,7 @@ ExecResult Executor::step() {
         case 0x8D: { // LEA reg16, mem
             uint8_t modrm = fetch8();
             auto rm = decode_modrm(modrm, true, seg_override);
+            if (!rm.is_mem) return ExecResult::ILLEGAL_OPCODE;
             *get_reg16(rm.reg_idx) = rm.offset;
             break;
         }
@@ -336,6 +349,14 @@ ExecResult Executor::step() {
             uint8_t modrm = fetch8();
             auto rm = decode_modrm(modrm, true, seg_override);
             *get_seg_reg(rm.reg_idx & 3) = static_cast<uint16_t>(read_rm(rm, true));
+            break;
+        }
+        case 0x8F: { // POP r/m
+            uint8_t modrm = fetch8();
+            auto rm = decode_modrm(modrm, true, seg_override);
+            uint16_t val = cpu.mem.read16(cpu.ss_sp());
+            cpu.regs.SP += 2;
+            write_rm(rm, true, val);
             break;
         }
         case 0x90: break; // NOP
@@ -358,6 +379,12 @@ ExecResult Executor::step() {
         }
         case 0x9C: cpu.regs.SP -= 2; cpu.mem.write16(cpu.ss_sp(), cpu.regs.flags.to_word()); break; // PUSHF
         case 0x9D: cpu.regs.flags.from_word(cpu.mem.read16(cpu.ss_sp())); cpu.regs.SP += 2; break;  // POPF
+        case 0x9E: // SAHF
+            cpu.regs.flags.from_word((cpu.regs.flags.to_word() & 0xFF00) | cpu.regs.AH());
+            break;
+        case 0x9F: // LAHF
+            cpu.regs.AH() = cpu.regs.flags.to_word() & 0xFF;
+            break;
         case 0xA0: case 0xA1: { // MOV AL/AX, moffs
             bool word = op & 1;
             uint32_t addr = Memory::segment_offset((seg_override != 0xFFFF) ? seg_override : cpu.regs.DS, fetch16());
@@ -376,6 +403,7 @@ ExecResult Executor::step() {
             int step = word ? 2 : 1;
             if (cpu.regs.flags.DF) step = -step;
             bool is_cmp = (op == 0xA6 || op == 0xA7 || op == 0xAE || op == 0xAF);
+            if (rep && cpu.regs.CX == 0) break;
             do {
                 uint32_t si_addr = Memory::segment_offset((seg_override != 0xFFFF) ? seg_override : cpu.regs.DS, cpu.regs.SI);
                 uint32_t di_addr = Memory::segment_offset(cpu.regs.ES, cpu.regs.DI);
@@ -423,6 +451,7 @@ ExecResult Executor::step() {
         case 0xC3: { cpu.regs.IP = cpu.mem.read16(cpu.ss_sp()); cpu.regs.SP += 2; break; } // RET
         case 0xC4: case 0xC5: { // LES, LDS
             uint8_t modrm = fetch8(); auto rm = decode_modrm(modrm, true, seg_override);
+            if (!rm.is_mem) return ExecResult::ILLEGAL_OPCODE;
             uint16_t off = cpu.mem.read16(rm.mem_addr), seg = cpu.mem.read16(rm.mem_addr + 2);
             *get_reg16(rm.reg_idx) = off; if (op == 0xC4) cpu.regs.ES = seg; else cpu.regs.DS = seg;
             break;
@@ -447,6 +476,7 @@ ExecResult Executor::step() {
             uint32_t v = read_rm(rm, word); uint8_t count = (use_cl ? cpu.regs.CL() : 1) & 0x1F;
             if (count == 0) break;
             uint8_t op_type = rm.reg_idx; uint32_t msb = word ? 0x8000 : 0x80, mask = word ? 0xFFFF : 0xFF;
+            bool original_msb = (v & msb) != 0;
             for (int i=0; i<count; i++) {
                 switch (op_type) {
                     case 0: cpu.regs.flags.CF = (v & msb) != 0; v = ((v << 1) | cpu.regs.flags.CF) & mask; break; // ROL
@@ -458,11 +488,15 @@ ExecResult Executor::step() {
                     case 7: { bool sign = (v & msb) != 0; cpu.regs.flags.CF = (v & 1) != 0; v = ((v >> 1) | (sign ? msb : 0)) & mask; break; } // SAR
                 }
             }
-            if (op_type >= 4) cpu.update_flags_logical(static_cast<uint16_t>(v), word);
+            if (op_type >= 4) {
+                cpu.regs.flags.ZF = (v == 0);
+                cpu.regs.flags.SF = word ? (v & 0x8000) != 0 : (v & 0x80) != 0;
+                cpu.regs.flags.PF = cpu.calc_parity(static_cast<uint8_t>(v & 0xFF));
+            }
             if (count == 1) {
                 if (op_type == 0 || op_type == 2 || op_type == 4 || op_type == 6) cpu.regs.flags.OF = cpu.regs.flags.CF ^ ((v & msb) != 0);
                 else if (op_type == 1 || op_type == 3) cpu.regs.flags.OF = ((v & msb) != 0) ^ (((v << 1) & msb) != 0);
-                else if (op_type == 5) cpu.regs.flags.OF = (v & msb) != 0;
+                else if (op_type == 5) cpu.regs.flags.OF = original_msb;
                 else if (op_type == 7) cpu.regs.flags.OF = false;
             }
             write_rm(rm, word, v);
@@ -470,32 +504,61 @@ ExecResult Executor::step() {
         }
         case 0xD4: { uint8_t base = fetch8(); if (base == 0) return ExecResult::DIVISION_BY_ZERO; cpu.regs.AH() = cpu.regs.AL() / base; cpu.regs.AL() %= base; cpu.update_flags_logical(cpu.regs.AL(), false); break; } // AAM
         case 0xD5: { uint8_t base = fetch8(); cpu.regs.AL() = cpu.regs.AL() + (cpu.regs.AH() * base); cpu.regs.AH() = 0; cpu.update_flags_logical(cpu.regs.AL(), false); break; } // AAD
+        case 0xD7: // XLAT
+            cpu.regs.AL() = cpu.mem.read8(Memory::segment_offset((seg_override != 0xFFFF) ? seg_override : cpu.regs.DS, cpu.regs.BX + cpu.regs.AL()));
+            break;
         case 0x27: { // DAA
             uint8_t old_al = cpu.regs.AL(); bool old_cf = cpu.regs.flags.CF;
             if ((cpu.regs.AL() & 0x0F) > 9 || cpu.regs.flags.AF) { cpu.regs.AL() += 6; cpu.regs.flags.AF = true; } else cpu.regs.flags.AF = false;
             if (old_al > 0x99 || old_cf) { cpu.regs.AL() += 0x60; cpu.regs.flags.CF = true; } else cpu.regs.flags.CF = false;
-            cpu.update_flags_logical(cpu.regs.AL(), false); break;
+            uint8_t res = cpu.regs.AL();
+            cpu.regs.flags.ZF = (res == 0);
+            cpu.regs.flags.SF = (res & 0x80) != 0;
+            cpu.regs.flags.PF = cpu.calc_parity(res);
+            break;
         }
         case 0x2F: { // DAS
             uint8_t old_al = cpu.regs.AL(); bool old_cf = cpu.regs.flags.CF;
             if ((cpu.regs.AL() & 0x0F) > 9 || cpu.regs.flags.AF) { cpu.regs.AL() -= 6; cpu.regs.flags.AF = true; } else cpu.regs.flags.AF = false;
             if (old_al > 0x99 || old_cf) { cpu.regs.AL() -= 0x60; cpu.regs.flags.CF = true; } else cpu.regs.flags.CF = false;
-            cpu.update_flags_logical(cpu.regs.AL(), false); break;
+            uint8_t res = cpu.regs.AL();
+            cpu.regs.flags.ZF = (res == 0);
+            cpu.regs.flags.SF = (res & 0x80) != 0;
+            cpu.regs.flags.PF = cpu.calc_parity(res);
+            break;
         }
         case 0x37: { // AAA
-            if ((cpu.regs.AL() & 0x0F) > 9 || cpu.regs.flags.AF) { cpu.regs.AX += 0x106; cpu.regs.flags.AF = cpu.regs.flags.CF = true; } else cpu.regs.flags.AF = cpu.regs.flags.CF = false;
-            cpu.regs.AL() &= 0x0F; break;
+            if ((cpu.regs.AL() & 0x0F) > 9 || cpu.regs.flags.AF) { 
+                cpu.regs.AL() += 6; 
+                cpu.regs.AH() += 1; 
+                cpu.regs.flags.AF = cpu.regs.flags.CF = true; 
+            } else {
+                cpu.regs.flags.AF = cpu.regs.flags.CF = false;
+            }
+            cpu.regs.AL() &= 0x0F; 
+            break;
         }
         case 0x3F: { // AAS
-            if ((cpu.regs.AL() & 0x0F) > 9 || cpu.regs.flags.AF) { cpu.regs.AX -= 0x006; cpu.regs.AH() -= 1; cpu.regs.flags.AF = cpu.regs.flags.CF = true; } else cpu.regs.flags.AF = cpu.regs.flags.CF = false;
-            cpu.regs.AL() &= 0x0F; break;
+            if ((cpu.regs.AL() & 0x0F) > 9 || cpu.regs.flags.AF) { 
+                cpu.regs.AL() -= 6; 
+                cpu.regs.AH() -= 1; 
+                cpu.regs.flags.AF = cpu.regs.flags.CF = true; 
+            } else {
+                cpu.regs.flags.AF = cpu.regs.flags.CF = false;
+            }
+            cpu.regs.AL() &= 0x0F; 
+            break;
         }
         case 0xE0: { int8_t offset = fetch_s8(); if (--cpu.regs.CX != 0 && !cpu.regs.flags.ZF) cpu.regs.IP += offset; break; } // LOOPNE
         case 0xE1: { int8_t offset = fetch_s8(); if (--cpu.regs.CX != 0 && cpu.regs.flags.ZF) cpu.regs.IP += offset; break; }  // LOOPE
         case 0xE2: { int8_t offset = fetch_s8(); if (--cpu.regs.CX != 0) cpu.regs.IP += offset; break; }                         // LOOP
         case 0xE3: { int8_t offset = fetch_s8(); if (cpu.regs.CX == 0) cpu.regs.IP += offset; break; }                           // JCXZ
-        case 0xE4: case 0xE5: case 0xE6: case 0xE7: fetch8(); break; // IN/OUT imm
-        case 0xEC: case 0xED: case 0xEE: case 0xEF: break;           // IN/OUT DX
+        case 0xE4: fetch8(); cpu.regs.AL() = 0xFF; break; // IN AL, imm8
+        case 0xE5: fetch8(); cpu.regs.AX = 0xFFFF; break; // IN AX, imm8
+        case 0xE6: case 0xE7: fetch8(); break;            // OUT imm8
+        case 0xEC: cpu.regs.AL() = 0xFF; break;           // IN AL, DX
+        case 0xED: cpu.regs.AX = 0xFFFF; break;           // IN AX, DX
+        case 0xEE: case 0xEF: break;                      // OUT DX
         case 0xE8: { int16_t offset = fetch_s16(); cpu.regs.SP -= 2; cpu.mem.write16(cpu.ss_sp(), cpu.regs.IP); cpu.regs.IP += offset; break; } // CALL rel16
         case 0xE9: { int16_t offset = fetch_s16(); cpu.regs.IP += offset; break; } // JMP rel16
         case 0xEA: { uint16_t offset = fetch16(), seg = fetch16(); cpu.regs.CS = seg; cpu.regs.IP = offset; break; } // JMP far
@@ -514,8 +577,8 @@ ExecResult Executor::step() {
                     else { uint16_t res = static_cast<uint16_t>(cpu.regs.AL()) * v; cpu.regs.AX = res; cpu.regs.flags.CF = cpu.regs.flags.OF = (cpu.regs.AH() != 0); } break;
                 }
                 case 5: { // IMUL
-                    if (word) { int32_t res = static_cast<int32_t>(static_cast<int16_t>(cpu.regs.AX)) * static_cast<int32_t>(static_cast<int16_t>(v)); cpu.regs.AX = res & 0xFFFF; cpu.regs.DX = res >> 16; cpu.regs.flags.CF = cpu.regs.flags.OF = (res != static_cast<int32_t>(static_cast<int16_t>(cpu.regs.AX))); }
-                    else { int16_t res = static_cast<int16_t>(static_cast<int8_t>(cpu.regs.AL())) * static_cast<int16_t>(static_cast<int8_t>(v)); cpu.regs.AX = res; cpu.regs.flags.CF = cpu.regs.flags.OF = (res != static_cast<int16_t>(static_cast<int8_t>(cpu.regs.AL()))); } break;
+                    if (word) { int32_t res = static_cast<int32_t>(static_cast<int16_t>(cpu.regs.AX)) * static_cast<int32_t>(static_cast<int16_t>(v)); cpu.regs.AX = res & 0xFFFF; cpu.regs.DX = res >> 16; cpu.regs.flags.CF = cpu.regs.flags.OF = (res != static_cast<int32_t>(static_cast<int16_t>(res & 0xFFFF))); }
+                    else { int16_t res = static_cast<int16_t>(static_cast<int8_t>(cpu.regs.AL())) * static_cast<int16_t>(static_cast<int8_t>(v)); cpu.regs.AX = res; cpu.regs.flags.CF = cpu.regs.flags.OF = (res != static_cast<int16_t>(static_cast<int8_t>(res & 0xFF))); } break;
                 }
                 case 6: { // DIV
                     if (v == 0) return ExecResult::DIVISION_BY_ZERO;
@@ -524,8 +587,20 @@ ExecResult Executor::step() {
                 }
                 case 7: { // IDIV
                     if (v == 0) return ExecResult::DIVISION_BY_ZERO;
-                    if (word) { int32_t num = static_cast<int32_t>((static_cast<uint32_t>(cpu.regs.DX) << 16) | cpu.regs.AX); int32_t den = static_cast<int16_t>(v); int32_t res = num / den; if (res > 32767 || res < -32768) return ExecResult::DIVISION_BY_ZERO; cpu.regs.AX = static_cast<uint16_t>(res); cpu.regs.DX = num % den; }
-                    else { int16_t num = static_cast<int16_t>(cpu.regs.AX); int16_t den = static_cast<int8_t>(v); int16_t res = num / den; if (res > 127 || res < -128) return ExecResult::DIVISION_BY_ZERO; cpu.regs.AL() = static_cast<uint8_t>(res); cpu.regs.AH() = num % den; } break;
+                if (word) { 
+                    int64_t num = static_cast<int32_t>((static_cast<uint32_t>(cpu.regs.DX) << 16) | cpu.regs.AX); 
+                    int64_t den = static_cast<int16_t>(v); 
+                    int64_t res = num / den; 
+                    if (res > 32767 || res < -32768) return ExecResult::DIVISION_BY_ZERO; 
+                    cpu.regs.AX = static_cast<uint16_t>(res); cpu.regs.DX = static_cast<uint16_t>(num % den); 
+                } else { 
+                    int32_t num = static_cast<int16_t>(cpu.regs.AX); 
+                    int32_t den = static_cast<int8_t>(v); 
+                    int32_t res = num / den; 
+                    if (res > 127 || res < -128) return ExecResult::DIVISION_BY_ZERO; 
+                    cpu.regs.AL() = static_cast<uint8_t>(res); cpu.regs.AH() = static_cast<uint8_t>(num % den); 
+                } 
+                break;
                 }
             }
             break;

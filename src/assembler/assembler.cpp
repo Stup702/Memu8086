@@ -17,6 +17,8 @@ struct Operand {
     int val{0};
     int mod{0}, rm{0}, disp{0};
     bool word{true};
+    bool far_ptr{false};
+    uint8_t seg_override{0};
 };
 
 // --- Lookup Tables ---
@@ -41,7 +43,8 @@ static const std::map<std::string, uint8_t> one_byte_ops = {
     {"MOVSB", 0xA4}, {"MOVSW", 0xA5}, {"STOSB", 0xAA}, {"STOSW", 0xAB},
     {"LODSB", 0xAC}, {"LODSW", 0xAD}, {"CMPSB", 0xA6}, {"CMPSW", 0xA7},
     {"SCASB", 0xAE}, {"SCASW", 0xAF},
-    {"REP", 0xF3}, {"REPE", 0xF3}, {"REPZ", 0xF3}, {"REPNE", 0xF2}, {"REPNZ", 0xF2}
+    {"REP", 0xF3}, {"REPE", 0xF3}, {"REPZ", 0xF3}, {"REPNE", 0xF2}, {"REPNZ", 0xF2},
+    {"XLAT", 0xD7}, {"XLATB", 0xD7}, {"SAHF", 0x9E}, {"LAHF", 0x9F}, {"LOCK", 0xF0}
 };
 
 static const std::map<std::string, int> shift_ops = {
@@ -98,6 +101,17 @@ void emit_modrm(std::vector<uint8_t>& code, int mod, int reg, int rm, int disp) 
     else if (mod == 2 || (mod == 0 && rm == 6)) emit16(code, disp);
 }
 
+bool contains_register(const std::string& e, const std::string& reg) {
+    size_t p = 0;
+    while ((p = e.find(reg, p)) != std::string::npos) {
+        bool start_ok = (p == 0 || (!std::isalnum(e[p - 1]) && e[p - 1] != '_'));
+        bool end_ok = (p + reg.length() == e.length() || (!std::isalnum(e[p + reg.length()]) && e[p + reg.length()] != '_'));
+        if (start_ok && end_ok) return true;
+        p += reg.length();
+    }
+    return false;
+}
+
 // --- Parsing & Evaluation ---
 int evaluate_expression(std::string e, const AssemblyResult& res, bool& ok) {
     e = trim(e);
@@ -123,8 +137,8 @@ int evaluate_expression(std::string e, const AssemblyResult& res, bool& ok) {
         if (e.length() > 2 && e[0] == '0' && (e[1] == 'X' || e[1] == 'x')) return std::stoi(e, nullptr, 16);
         if (e.length() > 2 && e[0] == '0' && (e[1] == 'B' || e[1] == 'b')) return std::stoi(e.substr(2), nullptr, 2);
         if (e.length() > 2 && e[0] == '0' && (e[1] == 'O' || e[1] == 'o')) return std::stoi(e.substr(2), nullptr, 8);
-        if (e.back() == 'H') return std::stoi(e.substr(0, e.length()-1), nullptr, 16);
-        if (e.back() == 'B') return std::stoi(e.substr(0, e.length()-1), nullptr, 2);
+        if (e.back() == 'H' && std::isdigit(e[0])) return std::stoi(e.substr(0, e.length()-1), nullptr, 16);
+        if (e.back() == 'B' && std::isdigit(e[0])) return std::stoi(e.substr(0, e.length()-1), nullptr, 2);
         if (std::isdigit(e[0]) || e[0] == '-') return std::stoi(e, nullptr, 0);
     } catch (...) {}
     ok = false;
@@ -133,24 +147,38 @@ int evaluate_expression(std::string e, const AssemblyResult& res, bool& ok) {
 
 void parse_memory(std::string e, int& mod, int& rm, int& disp, const AssemblyResult& res, bool& ok) {
     e = e.substr(1, e.length()-2); // strip []
-    if (e.find("BX") == std::string::npos && e.find("BP") == std::string::npos &&
-        e.find("SI") == std::string::npos && e.find("DI") == std::string::npos) {
+    
+    bool has_bx = contains_register(e, "BX");
+    bool has_bp = contains_register(e, "BP");
+    bool has_si = contains_register(e, "SI");
+    bool has_di = contains_register(e, "DI");
+    
+    if (!has_bx && !has_bp && !has_si && !has_di) {
         mod = 0; rm = 6; disp = evaluate_expression(e, res, ok); return;
     }
     
-    if (e.find("BX") != std::string::npos && e.find("SI") != std::string::npos) rm = 0;
-    else if (e.find("BX") != std::string::npos && e.find("DI") != std::string::npos) rm = 1;
-    else if (e.find("BP") != std::string::npos && e.find("SI") != std::string::npos) rm = 2;
-    else if (e.find("BP") != std::string::npos && e.find("DI") != std::string::npos) rm = 3;
-    else if (e.find("SI") != std::string::npos) rm = 4;
-    else if (e.find("DI") != std::string::npos) rm = 5;
-    else if (e.find("BP") != std::string::npos) rm = 6;
-    else if (e.find("BX") != std::string::npos) rm = 7;
+    if (has_bx && has_si) rm = 0;
+    else if (has_bx && has_di) rm = 1;
+    else if (has_bp && has_si) rm = 2;
+    else if (has_bp && has_di) rm = 3;
+    else if (has_si) rm = 4;
+    else if (has_di) rm = 5;
+    else if (has_bp) rm = 6;
+    else if (has_bx) rm = 7;
     
     std::string d_expr = e;
-    size_t p;
     for (auto r : {"BX", "BP", "SI", "DI"}) {
-        while ((p = d_expr.find(r)) != std::string::npos) d_expr.replace(p, 2, "0");
+        size_t p = 0;
+        while ((p = d_expr.find(r, p)) != std::string::npos) {
+            bool start_ok = (p == 0 || (!std::isalnum(d_expr[p - 1]) && d_expr[p - 1] != '_'));
+            bool end_ok = (p + 2 == d_expr.length() || (!std::isalnum(d_expr[p + 2]) && d_expr[p + 2] != '_'));
+            if (start_ok && end_ok) {
+                d_expr.replace(p, 2, "0");
+                p += 1;
+            } else {
+                p += 2;
+            }
+        }
     }
     disp = evaluate_expression(d_expr, res, ok);
     
@@ -165,11 +193,38 @@ Operand parse_operand(std::string s, const AssemblyResult& res, bool& ok) {
     bool explicit_size = false;
     if (s.substr(0, 8) == "BYTE PTR") { op.word = false; explicit_size = true; s = trim(s.substr(8)); }
     else if (s.substr(0, 8) == "WORD PTR") { op.word = true;  explicit_size = true; s = trim(s.substr(8)); }
+    else if (s.substr(0, 9) == "DWORD PTR") { op.far_ptr = true; explicit_size = true; s = trim(s.substr(9)); }
     else if (s.substr(0, 7) == "BYTEPTR") { op.word = false; explicit_size = true; s = trim(s.substr(7)); }
     else if (s.substr(0, 7) == "WORDPTR") { op.word = true;  explicit_size = true; s = trim(s.substr(7)); }
+    else if (s.substr(0, 8) == "DWORDPTR") { op.far_ptr = true; explicit_size = true; s = trim(s.substr(8)); }
 
     if (s.substr(0, 9) == "NEAR PTR ") { s = trim(s.substr(9)); }
-    else if (s.substr(0, 8) == "FAR PTR ") { s = trim(s.substr(8)); }
+    else if (s.substr(0, 8) == "FAR PTR ") { op.far_ptr = true; s = trim(s.substr(8)); }
+
+    size_t override_colon = s.find(':');
+    if (override_colon != std::string::npos && s.find('[') != std::string::npos && override_colon < s.find('[')) {
+        std::string seg_name = trim(s.substr(0, override_colon));
+        if (seg_name == "CS") op.seg_override = 0x2E;
+        else if (seg_name == "DS") op.seg_override = 0x3E;
+        else if (seg_name == "ES") op.seg_override = 0x26;
+        else if (seg_name == "SS") op.seg_override = 0x36;
+        s = trim(s.substr(override_colon + 1));
+    }
+
+    size_t colon = s.find(':');
+    if (colon != std::string::npos && s.find('[') == std::string::npos) {
+        std::string seg_str = s.substr(0, colon);
+        std::string off_str = s.substr(colon + 1);
+        bool ok1 = true, ok2 = true;
+        int seg_val = evaluate_expression(seg_str, res, ok1);
+        int off_val = evaluate_expression(off_str, res, ok2);
+        if (ok1 && ok2) {
+            op.type = Operand::IMM;
+            op.far_ptr = true;
+            op.val = (seg_val << 16) | (off_val & 0xFFFF);
+            return op;
+        }
+    }
 
     if (s.substr(0, 7) == "OFFSET ") {
         s = trim(s.substr(7));
@@ -236,15 +291,24 @@ std::vector<ParsedLine> parse_source(const std::string& source) {
     int line_num = 0;
     while (std::getline(stream, line)) {
         line_num++;
-        size_t comment_pos = line.find(';');
+        
+        char active_quote = 0;
+        size_t comment_pos = std::string::npos;
+        for (size_t i = 0; i < line.length(); ++i) {
+            char c = line[i];
+            if (active_quote == 0 && (c == '"' || c == '\'')) active_quote = c;
+            else if (active_quote == c) active_quote = 0;
+            else if (active_quote == 0 && c == ';') { comment_pos = i; break; }
+        }
         if (comment_pos != std::string::npos) line = line.substr(0, comment_pos);
         
         std::vector<std::string> tokens;
-        bool in_quotes = false;
+        active_quote = 0;
         std::string token;
         for (char c : line) {
-            if (c == '"' || c == '\'') in_quotes = !in_quotes;
-            if (!in_quotes && (c == ' ' || c == '\t' || c == '\r' || c == ',')) {
+            if (active_quote == 0 && (c == '"' || c == '\'')) active_quote = c;
+            else if (active_quote == c) active_quote = 0;
+            if (active_quote == 0 && (c == ' ' || c == '\t' || c == '\r' || c == ',')) {
                 if (!token.empty()) { tokens.push_back(token); token.clear(); }
                 if (c == ',') tokens.push_back(",");
             } else token += c;
@@ -336,15 +400,30 @@ void encode_instruction(const std::string& label, const std::string& mnemonic, c
         if (!label.empty() && is_pass2) {
             res.sym_lengths[label] = total_elements;
             res.sym_sizes[label] = total_elements * (mnemonic == "DB" ? 1 : (mnemonic == "DW" ? 2 : 4));
+                }
+        return;
+    }
+    
+    if (mnemonic == "REP" || mnemonic == "REPE" || mnemonic == "REPZ" || mnemonic == "REPNE" || mnemonic == "REPNZ" || mnemonic == "LOCK") {
+        uint8_t prefix = (mnemonic == "LOCK") ? 0xF0 : ((mnemonic == "REPNE" || mnemonic == "REPNZ") ? 0xF2 : 0xF3);
+        emit8(code, prefix);
+        if (!ops.empty()) {
+            std::string next_mnem = ops[0];
+            std::vector<std::string> next_ops(ops.begin() + 1, ops.end());
+            encode_instruction("", next_mnem, next_ops, res, code, LC + 1, line_num, is_pass2);
         }
         return;
     }
+
     if (one_byte_ops.count(mnemonic)) { emit8(code, one_byte_ops.at(mnemonic)); return; }
-    
+
     bool ok = true;
     Operand op1 = ops.size() > 0 ? parse_operand(ops[0], res, ok) : Operand();
     Operand op2 = ops.size() > 1 ? parse_operand(ops[1], res, ok) : Operand();
     if (is_pass2 && !ok) { res.success = false; res.errors.push_back({line_num, "Invalid operand in " + mnemonic}); }
+
+    if (op1.seg_override) emit8(code, op1.seg_override);
+    else if (op2.seg_override) emit8(code, op2.seg_override);
 
     if (alu_ops.count(mnemonic)) {
         int opc = alu_ops.at(mnemonic);
@@ -357,7 +436,7 @@ void encode_instruction(const std::string& label, const std::string& mnemonic, c
         else if (op1.type == Operand::REG16 && op2.type == Operand::MEM) { emit8(code, (opc << 3) | 0x03); emit_modrm(code, op2.mod, op1.val, op2.rm, op2.disp); }
         else if (op1.type == Operand::REG8 && op1.val == 0 && op2.type == Operand::IMM) { emit8(code, (opc << 3) | 0x04); emit8(code, op2.val); }
         else if (op1.type == Operand::REG16 && op1.val == 0 && op2.type == Operand::IMM) { emit8(code, (opc << 3) | 0x05); emit16(code, op2.val); }
-        else if ((op1.type == Operand::REG8 || op1.type == Operand::MEM) && op2.type == Operand::IMM) {
+        else if ((op1.type == Operand::REG8 || op1.type == Operand::REG16 || op1.type == Operand::MEM) && op2.type == Operand::IMM) {
             if (op1.type == Operand::REG8 || !word) {
                 emit8(code, 0x80);
                 if (op1.type == Operand::REG8) emit_modrm(code, 3, opc, op1.val, 0); else emit_modrm(code, op1.mod, opc, op1.rm, op1.disp);
@@ -528,12 +607,19 @@ void encode_instruction(const std::string& label, const std::string& mnemonic, c
 
     if (mnemonic == "JMP" || mnemonic == "CALL") {
         if (op1.type == Operand::IMM) {
-            int rel = op1.val - (LC + (mnemonic == "JMP" && op1.val - (LC+2) >= -128 && op1.val - (LC+2) <= 127 ? 2 : 3));
-            if (mnemonic == "JMP" && rel >= -128 && rel <= 127) { emit8(code, 0xEB); emit8(code, rel); }
-            else { emit8(code, mnemonic == "JMP" ? 0xE9 : 0xE8); emit16(code, rel); }
+            if (op1.far_ptr) {
+                emit8(code, mnemonic == "JMP" ? 0xEA : 0x9A);
+                emit16(code, op1.val & 0xFFFF);
+                emit16(code, (op1.val >> 16) & 0xFFFF);
+            } else {
+                bool short_jmp = (mnemonic == "JMP" && op1.val - (LC+2) >= -128 && op1.val - (LC+2) <= 127);
+                int rel = op1.val - (LC + (short_jmp ? 2 : 3));
+                if (short_jmp) { emit8(code, 0xEB); emit8(code, rel); }
+                else { emit8(code, mnemonic == "JMP" ? 0xE9 : 0xE8); emit16(code, rel); }
+            }
         } else {
             emit8(code, 0xFF);
-            int opc = mnemonic == "JMP" ? 4 : 2;
+            int opc = mnemonic == "JMP" ? (op1.far_ptr ? 5 : 4) : (op1.far_ptr ? 3 : 2);
             if (op1.type == Operand::REG16) emit_modrm(code, 3, opc, op1.val, 0); else emit_modrm(code, op1.mod, opc, op1.rm, op1.disp);
         }
         return;
@@ -543,6 +629,13 @@ void encode_instruction(const std::string& label, const std::string& mnemonic, c
     if (mnemonic == "RETF") { if (ops.empty()) emit8(code, 0xCB); else { emit8(code, 0xCA); emit16(code, op1.val); } return; }
     if (mnemonic == "INT") { if (op1.val == 3) emit8(code, 0xCC); else { emit8(code, 0xCD); emit8(code, op1.val); } return; }
     
+    if (mnemonic == "AAM" || mnemonic == "AAD") {
+        emit8(code, mnemonic == "AAM" ? 0xD4 : 0xD5);
+        if (ops.empty()) emit8(code, 0x0A);
+        else { bool ok = true; emit8(code, evaluate_expression(ops[0], res, ok)); }
+        return;
+    }
+
     if (is_pass2) { res.success = false; res.errors.push_back({line_num, "Unhandled or unknown mnemonic: " + mnemonic}); }
 }
 
