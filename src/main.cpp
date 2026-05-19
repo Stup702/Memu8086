@@ -22,13 +22,13 @@ int main(int argc, char* argv[]) {
     // Read and apply the saved theme
     QSettings s("memu8086", "memu8086");
     
-    // Instantiate core objects
-    CPU cpu;
-    Assembler assembler;
-    ConsoleState console;
-    Debugger debugger(cpu, cpu.mem, console);
+    // Instantiate core objects on the heap to avoid stack overflow (CPU contains 1MB array)
+    auto cpu = std::make_unique<CPU>();
+    auto assembler = std::make_unique<Assembler>();
+    auto console = std::make_unique<ConsoleState>();
+    auto debugger = std::make_unique<Debugger>(*cpu, cpu->mem, *console);
 
-    MainWindow window(cpu, assembler, debugger, console);
+    MainWindow window(*cpu, *assembler, *debugger, *console);
     window.show();
     return app.exec();
 }
