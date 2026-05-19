@@ -11,6 +11,7 @@
 #include <QWheelEvent>
 #include <QKeyEvent>
 #include <QSettings>
+#include <QPaintEvent>
 
 namespace memu8086::ui {
 

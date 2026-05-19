@@ -8,6 +8,8 @@
 #include <QHeaderView>
 #include <QPainter>
 #include <QMouseEvent>
+#include <QPaintEvent>
+#include <QEnterEvent>
 
 namespace memu8086::ui {
 

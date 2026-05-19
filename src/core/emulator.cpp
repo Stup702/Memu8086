@@ -1,5 +1,5 @@
 #include "emulator.h"
-#include <sstream>
+#include <exception>
 
 namespace emu8086::core {
 
@@ -119,28 +119,28 @@ void Emulator::step() {
     try {
         ExecResult res = executor_->step();
         if (res == ExecResult::INTERRUPT_PENDING) {
-                if (!irq_->handle(executor_->last_interrupt_num)) {
-                    uint8_t vec = executor_->last_interrupt_num;
-                    cpu_.regs.SP -= 2; cpu_.mem.write16(cpu_.ss_sp(), cpu_.regs.flags.to_word());
-                    cpu_.regs.flags.IF = false; cpu_.regs.flags.TF = false;
-                    cpu_.regs.SP -= 2; cpu_.mem.write16(cpu_.ss_sp(), cpu_.regs.CS);
-                    cpu_.regs.SP -= 2; cpu_.mem.write16(cpu_.ss_sp(), cpu_.regs.IP);
-                    cpu_.regs.IP = cpu_.mem.read16(vec * 4);
-                    cpu_.regs.CS = cpu_.mem.read16(vec * 4 + 2);
-                }
-            } else if (res == ExecResult::DIVISION_BY_ZERO) {
-                uint8_t vec = 0;
+            if (!irq_->handle(executor_->last_interrupt_num)) {
+                uint8_t vec = executor_->last_interrupt_num;
                 cpu_.regs.SP -= 2; cpu_.mem.write16(cpu_.ss_sp(), cpu_.regs.flags.to_word());
                 cpu_.regs.flags.IF = false; cpu_.regs.flags.TF = false;
                 cpu_.regs.SP -= 2; cpu_.mem.write16(cpu_.ss_sp(), cpu_.regs.CS);
                 cpu_.regs.SP -= 2; cpu_.mem.write16(cpu_.ss_sp(), cpu_.regs.IP);
                 cpu_.regs.IP = cpu_.mem.read16(vec * 4);
                 cpu_.regs.CS = cpu_.mem.read16(vec * 4 + 2);
-                res = ExecResult::OK;
+            }
+        } else if (res == ExecResult::DIVISION_BY_ZERO) {
+            uint8_t vec = 0;
+            cpu_.regs.SP -= 2; cpu_.mem.write16(cpu_.ss_sp(), cpu_.regs.flags.to_word());
+            cpu_.regs.flags.IF = false; cpu_.regs.flags.TF = false;
+            cpu_.regs.SP -= 2; cpu_.mem.write16(cpu_.ss_sp(), cpu_.regs.CS);
+            cpu_.regs.SP -= 2; cpu_.mem.write16(cpu_.ss_sp(), cpu_.regs.IP);
+            cpu_.regs.IP = cpu_.mem.read16(vec * 4);
+            cpu_.regs.CS = cpu_.mem.read16(vec * 4 + 2);
+            res = ExecResult::OK;
         }
             
         if (irq_->halted || res == ExecResult::HALT) state_ = EmulatorState::HALTED;
-            else if (res == ExecResult::ILLEGAL_OPCODE) state_ = EmulatorState::ERROR;
+        else if (res == ExecResult::ILLEGAL_OPCODE) state_ = EmulatorState::ERROR;
     } catch (const std::exception& e) {
         state_ = EmulatorState::ERROR;
         std::lock_guard<std::mutex> out_lock(output_mutex_);
@@ -251,28 +251,28 @@ void Emulator::exec_loop_() {
     while (state_ == EmulatorState::RUNNING) {
         std::unique_lock<std::mutex> lock(cpu_mutex_);
         
-            ExecResult res = executor_->step();
-            
-            if (res == ExecResult::INTERRUPT_PENDING) {
-                if (!irq_->handle(executor_->last_interrupt_num)) {
-                    uint8_t vec = executor_->last_interrupt_num;
-                    cpu_.regs.SP -= 2; cpu_.mem.write16(cpu_.ss_sp(), cpu_.regs.flags.to_word());
-                    cpu_.regs.flags.IF = false; cpu_.regs.flags.TF = false;
-                    cpu_.regs.SP -= 2; cpu_.mem.write16(cpu_.ss_sp(), cpu_.regs.CS);
-                    cpu_.regs.SP -= 2; cpu_.mem.write16(cpu_.ss_sp(), cpu_.regs.IP);
-                    cpu_.regs.IP = cpu_.mem.read16(vec * 4);
-                    cpu_.regs.CS = cpu_.mem.read16(vec * 4 + 2);
-                }
-            } else if (res == ExecResult::DIVISION_BY_ZERO) {
-                uint8_t vec = 0;
+        ExecResult res = executor_->step();
+        
+        if (res == ExecResult::INTERRUPT_PENDING) {
+            if (!irq_->handle(executor_->last_interrupt_num)) {
+                uint8_t vec = executor_->last_interrupt_num;
                 cpu_.regs.SP -= 2; cpu_.mem.write16(cpu_.ss_sp(), cpu_.regs.flags.to_word());
                 cpu_.regs.flags.IF = false; cpu_.regs.flags.TF = false;
                 cpu_.regs.SP -= 2; cpu_.mem.write16(cpu_.ss_sp(), cpu_.regs.CS);
                 cpu_.regs.SP -= 2; cpu_.mem.write16(cpu_.ss_sp(), cpu_.regs.IP);
                 cpu_.regs.IP = cpu_.mem.read16(vec * 4);
                 cpu_.regs.CS = cpu_.mem.read16(vec * 4 + 2);
-                res = ExecResult::OK;
             }
+        } else if (res == ExecResult::DIVISION_BY_ZERO) {
+            uint8_t vec = 0;
+            cpu_.regs.SP -= 2; cpu_.mem.write16(cpu_.ss_sp(), cpu_.regs.flags.to_word());
+            cpu_.regs.flags.IF = false; cpu_.regs.flags.TF = false;
+            cpu_.regs.SP -= 2; cpu_.mem.write16(cpu_.ss_sp(), cpu_.regs.CS);
+            cpu_.regs.SP -= 2; cpu_.mem.write16(cpu_.ss_sp(), cpu_.regs.IP);
+            cpu_.regs.IP = cpu_.mem.read16(vec * 4);
+            cpu_.regs.CS = cpu_.mem.read16(vec * 4 + 2);
+            res = ExecResult::OK;
+        }
             
             // Breakpoint/HALT resolution executes AFTER processing the current step 
             // cleanly avoiding resuming issues on top of a breakpoint.

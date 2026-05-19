@@ -11,6 +11,9 @@
 #include <QHBoxLayout>
 #include <QShortcut>
 #include <QDateTime>
+#include <QPaintEvent>
+#include <QResizeEvent>
+#include <QWheelEvent>
 
 namespace memu8086::ui {
 

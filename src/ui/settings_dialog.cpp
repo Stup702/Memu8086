@@ -9,6 +9,12 @@
 #include <QApplication>
 #include <QDir>
 #include "theme.h"
+#include <QTabWidget>
+#include <QSpinBox>
+#include <QComboBox>
+#include <QCheckBox>
+#include <QSlider>
+#include <QTableWidget>
 
 namespace memu8086::ui {
 

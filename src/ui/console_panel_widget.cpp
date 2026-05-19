@@ -6,6 +6,9 @@
 #include <QDockWidget>
 #include <QVBoxLayout>
 #include <QTimer>
+#include <QPaintEvent>
+#include <QMouseEvent>
+#include <QResizeEvent>
 
 namespace memu8086::ui {
 
