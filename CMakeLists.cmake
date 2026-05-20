@@ -24,9 +24,9 @@ target_link_libraries(memu8086 PRIVATE
     nlohmann_json::nlohmann_json
 )
 
-# Enable strict warnings based on the compiler
+# Enable strict warnings and MSVC compliance based on the compiler
 if(MSVC)
-    target_compile_options(memu8086 PRIVATE /W4)
+    target_compile_options(memu8086 PRIVATE /W4 /Zc:__cplusplus /permissive- /FS)
 else()
     target_compile_options(memu8086 PRIVATE -Wall -Wextra)
 endif()
