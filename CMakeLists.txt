@@ -25,6 +25,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Global MSVC options
+if(MSVC)
+    add_compile_options(/FS)
+endif()
+
 find_package(Qt6 REQUIRED COMPONENTS Widgets Core Gui)
 qt_standard_project_setup()
 set(CMAKE_AUTOMOC ON)
@@ -39,7 +44,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(fmt)
 
-qt_add_executable(memu8086 WIN32 MACOSX_BUNDLE
+set(SOURCES
     src/main.cpp
     src/ui/mainwindow.h
     src/ui/mainwindow.cpp
@@ -76,6 +81,14 @@ qt_add_executable(memu8086 WIN32 MACOSX_BUNDLE
     src/assembler/assembler.cpp
 )
 
+if(WIN32)
+    list(APPEND SOURCES appicon.rc)
+endif()
+
+qt_add_executable(memu8086 WIN32 MACOSX_BUNDLE
+    ${SOURCES}
+)
+
 # Link libraries
 target_link_libraries(memu8086 PRIVATE
     Qt6::Widgets
@@ -84,9 +97,9 @@ target_link_libraries(memu8086 PRIVATE
     fmt::fmt
 )
 
-# Enable strict warnings based on the compiler
+# Enable strict warnings and MSVC compliance based on the compiler
 if(MSVC)
-    target_compile_options(memu8086 PRIVATE /W4)
+    target_compile_options(memu8086 PRIVATE /W4 /Zc:__cplusplus /permissive-)
 else()
     target_compile_options(memu8086 PRIVATE -Wall -Wextra)
 endif()
@@ -106,6 +119,13 @@ if(BUILD_TESTS)
     )
     target_link_libraries(test_runner PRIVATE fmt::fmt)
     target_include_directories(test_runner PRIVATE src)
+
+    # Enable strict warnings and MSVC compliance based on the compiler
+    if(MSVC)
+        target_compile_options(test_runner PRIVATE /W4 /Zc:__cplusplus /permissive- /FS)
+    else()
+        target_compile_options(test_runner PRIVATE -Wall -Wextra)
+    endif()
 endif()
 
 include(GNUInstallDirs)
@@ -117,7 +137,7 @@ install(TARGETS memu8086
 if(COMMAND qt_generate_deploy_app_script)
     qt_generate_deploy_app_script(
         TARGET memu8086
-        FILENAME_VARIABLE deploy_script
+        OUTPUT_SCRIPT deploy_script
         NO_UNSUPPORTED_PLATFORM_ERROR
     )
     install(SCRIPT "${deploy_script}")

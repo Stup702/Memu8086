@@ -16,6 +16,7 @@
 
 #include <QApplication>
 #include <QFontDatabase>
+#include <QIcon>
 #include <memory>
 #include "ui/mainwindow.h"
 #include "core/cpu.h"
@@ -31,6 +32,7 @@ int main(int argc, char* argv[]) {
     app.setApplicationName("memu8086");
     app.setApplicationVersion("1.0.0");
     app.setOrganizationName("memu8086");
+    app.setWindowIcon(QIcon(":/appicon.ico"));
 
     // Load embedded monospace font
     QFontDatabase::addApplicationFont(":/fonts/JetBrainsMono-Regular.ttf");

@@ -1,6 +1,7 @@
 <!DOCTYPE RCC>
 <RCC version="1.0">
     <qresource prefix="/">
+        <file alias="appicon.ico">../appicon.ico</file>
         <file>assets/fonts/JetBrainsMono-Regular.ttf</file>
         <file>assets/styles/dark.qss</file>
         <file>assets/styles/light.qss</file>
