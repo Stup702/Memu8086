@@ -1,74 +1,50 @@
-# memu8086
+# 🍎 macOS Build Guide for memu8086
 
-A modern, cross-platform Intel 8086 emulator and assembler with a rich graphical user interface. Built with C++17 and Qt 6.
+Welcome to the macOS build guide for **memu8086**, a modern Intel 8086 emulator and assembler. This guide provides step-by-step instructions to compile and run the project natively on macOS (fully compatible with both Apple Silicon M-Series and Intel MacBooks).
 
-## Features
+## 🛠 Prerequisites
 
-- **Integrated Assembler:** Write your 8086 assembly code and assemble it instantly within the application.
-- **Advanced Debugger:** 
-  - Step, Step Over, Run, Pause, and Stop execution.
-  - Set visual breakpoints directly in the code editor.
-  - Adjustable execution speed to visualize code flow in real-time.
-- **Interactive Console:** Built-in terminal emulator to view text output and send keyboard input directly to the emulated CPU via DOS/BIOS interrupts.
-- **Comprehensive Hardware Views:**
-  - **Registers:** Real-time view of all CPU registers and flags.
-  - **Memory:** Hex viewer with quick-jump functionality.
-  - **Stack:** Visual representation of the call stack.
-  - **Variables:** Track and inspect labeled memory locations and resolved symbols.
-- **Customizable Workspace:** 
-  - Fully dockable interface (drag, drop, tear-off, and resize panels to your liking).
-  - Support for custom layouts with save/restore functionality.
-  - Built-in Dark and Light themes with an embedded programmer's font (JetBrains Mono).
+Before building the project, ensure you have the necessary development tools installed. The easiest way to install these on macOS is via [Homebrew](https://brew.sh/).
 
-## Prerequisites
-
-- **C++17** compatible compiler (GCC, Clang, or MSVC)
-- **CMake** (>= 3.20)
-- **Qt 6** (Core, Gui, Widgets components)
-
-*(Note: The `fmt` library is required but will be automatically downloaded and configured by CMake).*
-
-## Download (Install & Run)
-
-If you don't want to build from source, you can download the pre-compiled binaries for Windows, macOS, and Linux from the Releases page. Extract or install the package for your OS, and run the `memu8086` executable.
-
-## Building from Source
-
-### 1. Clone the repository
+Open your Terminal and install the required dependencies (CMake, Ninja, and Qt6):
 
 ```bash
-git clone https://github.com/yourusername/memu8086.git
+brew install cmake ninja qt6
+(Note: If you haven't installed Apple's Command Line Tools yet, you might be prompted to do so. You can manually install them via xcode-select --install).
+
+🚀 Build Instructions
+Follow these steps to configure and compile the emulator from the source code.
+
+1. Clone the repository and navigate into it:
+
+Bash
+git clone [https://github.com/Stup702/Memu8086](https://github.com/Stup702/Memu8086)
 cd memu8086
-```
+2. Create a dedicated build directory:
+We use a separate build directory to keep the source code clean.
 
-### 2. Configure the project
+Bash
+mkdir build
+cd build
+3. Configure the project with CMake:
+This step tells CMake where to find the Qt6 framework installed by Homebrew.
 
-Create a build directory and configure the project with CMake. If Qt 6 is not installed in a standard system path, provide the path to your Qt installation using `CMAKE_PREFIX_PATH`:
+Bash
+cmake .. -G Ninja -DCMAKE_PREFIX_PATH=$(brew --prefix qt6)
+4. Compile the application:
 
-```bash
-# Example for Linux with a local Qt installation:
-cmake -B build -DCMAKE_PREFIX_PATH="$HOME/Qt/6.x.x/gcc_64"
+Bash
+ninja
+Note: The first time you run this, it may take a minute or two as it automatically fetches required libraries (like fmt) and compiles the core architecture.
 
-# Example for Windows (MSVC):
-cmake -B build -DCMAKE_PREFIX_PATH="C:/Qt/6.x.x/msvc2019_64"
-```
+🎮 Running the Emulator
+Once the build process completes successfully, a native macOS application bundle (memu8086.app) will be generated inside your build directory.
 
-### 3. Build the executable
+Launch the emulator directly from your terminal using:
 
-```bash
-cmake --build build -j$(nproc)
-```
+Bash
+open memu8086.app
+💡 Troubleshooting
+CMake cannot find Qt6: Ensure Homebrew is correctly added to your system's $PATH. You can verify the Qt6 path by running echo $(brew --prefix qt6) in your terminal.
 
-### 4. Run the emulator
-
-```bash
-# On Linux/macOS:
-./build/memu8086
-
-# On Windows:
-.\build\Debug\memu8086.exe
-```
-
-## License
-
-This project is licensed under the GNU General Public License (GPL) - see the LICENSE file for details.
+Build Artifacts: To clean up your project or start a fresh build, simply delete the build folder (rm -rf build) and repeat the steps above.
