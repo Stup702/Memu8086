@@ -100,6 +100,10 @@ void RegistersPanel::setup_ui() {
         reg_bin_items[regs[i]]->setForeground(QColor(Theme::Color::TEXT_DIM));
         reg_bin_items[regs[i]]->setFont(Theme::mono_font(12));
         table->setItem(i, 3, reg_bin_items[regs[i]]);
+
+        for (int c = 0; c < 4; ++c) {
+            if (auto* it = table->item(i, c)) it->setToolTip(it->text());
+        }
     }
 
     // Dynamically calculate exact required height to prevent clipping on any OS/DPI scaling
@@ -127,10 +131,15 @@ void RegistersPanel::setup_ui() {
     // Section 3: Flags
     QGroupBox* grp_flags = new QGroupBox("Flags");
     QHBoxLayout* lay_flags = new QHBoxLayout(grp_flags);
-    QStringList flg_names = {"OF","DF","IF","TF","SF","ZF","AF","PF","CF"};
-    for (const auto& f : flg_names) {
-        flag_widgets[f] = new FlagWidget(f, f + " Flag", this);
-        lay_flags->addWidget(flag_widgets[f]);
+    struct FlagInfo { QString abbr; QString full; };
+    QList<FlagInfo> flgs = {
+        {"OF", "Overflow Flag"}, {"DF", "Direction Flag"}, {"IF", "Interrupt Flag"},
+        {"TF", "Trap Flag"},     {"SF", "Sign Flag"},      {"ZF", "Zero Flag"},
+        {"AF", "Auxiliary Flag"},{"PF", "Parity Flag"},    {"CF", "Carry Flag"}
+    };
+    for (const auto& f : flgs) {
+        flag_widgets[f.abbr] = new FlagWidget(f.abbr, f.full, this);
+        lay_flags->addWidget(flag_widgets[f.abbr]);
     }
     lay_flags->addStretch();
     layout->addWidget(grp_flags);

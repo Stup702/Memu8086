@@ -68,7 +68,8 @@ ModRMResult Executor::decode_modrm(uint8_t modrm, bool word, uint16_t seg_overri
 
     res.is_mem = (mod != 3);
     if (!res.is_mem) {
-        res.reg_ptr = word ? get_reg16(rm) : reinterpret_cast<uint16_t*>(get_reg8(rm));
+        if (word) res.reg_ptr = get_reg16(rm);
+        else res.reg8_ptr = get_reg8(rm);
     } else {
         uint16_t offset = 0;
         uint16_t default_seg = cpu.regs.DS;
@@ -97,7 +98,7 @@ ModRMResult Executor::decode_modrm(uint8_t modrm, bool word, uint16_t seg_overri
 
 uint32_t Executor::read_rm(const ModRMResult& rm, bool word) {
     if (rm.is_mem) return word ? cpu.mem.read16(rm.mem_addr) : cpu.mem.read8(rm.mem_addr);
-    else return word ? *rm.reg_ptr : *reinterpret_cast<uint8_t*>(rm.reg_ptr);
+    else return word ? *rm.reg_ptr : *rm.reg8_ptr;
 }
 
 void Executor::write_rm(const ModRMResult& rm, bool word, uint32_t val) {
@@ -106,7 +107,7 @@ void Executor::write_rm(const ModRMResult& rm, bool word, uint32_t val) {
         else cpu.mem.write8(rm.mem_addr, static_cast<uint8_t>(val));
     } else {
         if (word) *rm.reg_ptr = static_cast<uint16_t>(val);
-        else *reinterpret_cast<uint8_t*>(rm.reg_ptr) = static_cast<uint8_t>(val);
+        else *rm.reg8_ptr = static_cast<uint8_t>(val);
     }
 }
 
@@ -403,10 +404,14 @@ ExecResult Executor::step() {
             int step = word ? 2 : 1;
             if (cpu.regs.flags.DF) step = -step;
             bool is_cmp = (op == 0xA6 || op == 0xA7 || op == 0xAE || op == 0xAF);
-            if (rep && cpu.regs.CX == 0) break;
+            
+            // Single iteration if no REP, or loop if REP
             do {
+                if (rep && cpu.regs.CX == 0) break;
+
                 uint32_t si_addr = Memory::segment_offset((seg_override != 0xFFFF) ? seg_override : cpu.regs.DS, cpu.regs.SI);
                 uint32_t di_addr = Memory::segment_offset(cpu.regs.ES, cpu.regs.DI);
+                
                 if (op == 0xA4 || op == 0xA5) { // MOVS
                     uint32_t val = word ? cpu.mem.read16(si_addr) : cpu.mem.read8(si_addr);
                     if (word) cpu.mem.write16(di_addr, static_cast<uint16_t>(val)); else cpu.mem.write8(di_addr, static_cast<uint8_t>(val));
@@ -420,14 +425,15 @@ ExecResult Executor::step() {
                 } else if (op == 0xA6 || op == 0xA7) { // CMPS
                     uint32_t src = word ? cpu.mem.read16(si_addr) : cpu.mem.read8(si_addr);
                     uint32_t dst = word ? cpu.mem.read16(di_addr) : cpu.mem.read8(di_addr);
-                    uint32_t res; bool wb; alu_op(7, word, src, dst, res, wb);
+                    uint32_t res; bool wb; alu_op(5, word, src, dst, res, wb); // Use SUB (5) for CMPS
                     cpu.regs.SI += step; cpu.regs.DI += step;
                 } else if (op == 0xAE || op == 0xAF) { // SCAS
                     uint32_t dst = word ? cpu.mem.read16(di_addr) : cpu.mem.read8(di_addr);
                     uint32_t src = word ? cpu.regs.AX : cpu.regs.AL();
-                    uint32_t res; bool wb; alu_op(7, word, src, dst, res, wb);
+                    uint32_t res; bool wb; alu_op(5, word, src, dst, res, wb); // Use SUB (5) for SCAS
                     cpu.regs.DI += step;
                 }
+
                 if (rep) {
                     cpu.regs.CX--;
                     if (is_cmp && repz && !cpu.regs.flags.ZF) break;
@@ -479,9 +485,9 @@ ExecResult Executor::step() {
             bool original_msb = (v & msb) != 0;
             for (int i=0; i<count; i++) {
                 switch (op_type) {
-                    case 0: cpu.regs.flags.CF = (v & msb) != 0; v = ((v << 1) | cpu.regs.flags.CF) & mask; break; // ROL
+                    case 0: cpu.regs.flags.CF = (v & msb) != 0; v = ((v << 1) | (cpu.regs.flags.CF ? 1 : 0)) & mask; break; // ROL
                     case 1: cpu.regs.flags.CF = (v & 1) != 0; v = ((v >> 1) | (cpu.regs.flags.CF ? msb : 0)) & mask; break; // ROR
-                    case 2: { bool o_cf = cpu.regs.flags.CF; cpu.regs.flags.CF = (v & msb) != 0; v = ((v << 1) | o_cf) & mask; break; } // RCL
+                    case 2: { bool o_cf = cpu.regs.flags.CF; cpu.regs.flags.CF = (v & msb) != 0; v = ((v << 1) | (o_cf ? 1 : 0)) & mask; break; } // RCL
                     case 3: { bool o_cf = cpu.regs.flags.CF; cpu.regs.flags.CF = (v & 1) != 0; v = ((v >> 1) | (o_cf ? msb : 0)) & mask; break; } // RCR
                     case 4: case 6: cpu.regs.flags.CF = (v & msb) != 0; v = (v << 1) & mask; break; // SHL/SAL
                     case 5: cpu.regs.flags.CF = (v & 1) != 0; v = (v >> 1) & mask; break; // SHR
@@ -490,7 +496,7 @@ ExecResult Executor::step() {
             }
             if (op_type >= 4) {
                 cpu.regs.flags.ZF = (v == 0);
-                cpu.regs.flags.SF = word ? (v & 0x8000) != 0 : (v & 0x80) != 0;
+                cpu.regs.flags.SF = (v & msb) != 0;
                 cpu.regs.flags.PF = cpu.calc_parity(static_cast<uint8_t>(v & 0xFF));
             }
             if (count == 1) {

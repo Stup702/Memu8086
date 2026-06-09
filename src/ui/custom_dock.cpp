@@ -86,5 +86,13 @@ CustomDockWidget::CustomDockWidget(const QString& title, QWidget* parent) : QDoc
     title_bar = new DockTitleBar(title, this); setTitleBarWidget(title_bar);
     connect(this, &QDockWidget::topLevelChanged, this, &CustomDockWidget::on_float_changed);
 }
-void CustomDockWidget::on_float_changed(bool floating) { title_bar->update_float_state(floating); }
+void CustomDockWidget::on_float_changed(bool floating) {
+    if (floating) {
+        setWindowFlags(Qt::Window);
+        show();
+    } else {
+        setWindowFlags(Qt::Widget);
+    }
+    title_bar->update_float_state(floating);
+}
 } // namespace memu8086::ui

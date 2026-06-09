@@ -123,6 +123,10 @@ void VariablesPanel::rebuild_table(const emu8086::core::CPU& cpu) {
         table->setItem(row, 2, it_valh); table->setItem(row, 3, it_high);
         table->setItem(row, 4, it_low);  table->setItem(row, 5, it_vald);
         table->setItem(row, 6, it_type);
+
+        for (int c = 0; c < 7; ++c) {
+            if (auto* it = table->item(row, c)) it->setToolTip(it->text());
+        }
         row++;
     };
 

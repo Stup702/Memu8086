@@ -14,7 +14,10 @@ enum class ExecResult : uint8_t {
 };
 
 struct ModRMResult {
-    uint16_t* reg_ptr; // Pointer to target register
+    union {
+        uint16_t* reg_ptr; // Pointer to target register
+        uint8_t*  reg8_ptr;
+    };
     uint32_t mem_addr; // Resolved physical memory address
     uint16_t offset;   // Effective address offset
     bool is_mem;       // True if operating on memory

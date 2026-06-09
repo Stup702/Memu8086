@@ -191,12 +191,18 @@ Operand parse_operand(std::string s, const AssemblyResult& res, bool& ok) {
     Operand op;
     s = trim(s);
     bool explicit_size = false;
-    if (s.substr(0, 8) == "BYTE PTR") { op.word = false; explicit_size = true; s = trim(s.substr(8)); }
+    if (s.substr(0, 9) == "BYTE PTR ") { op.word = false; explicit_size = true; s = trim(s.substr(9)); }
+    else if (s.substr(0, 9) == "WORD PTR ") { op.word = true;  explicit_size = true; s = trim(s.substr(9)); }
+    else if (s.substr(0, 10) == "DWORD PTR ") { op.far_ptr = true; explicit_size = true; s = trim(s.substr(10)); }
+    else if (s.substr(0, 8) == "BYTE PTR") { op.word = false; explicit_size = true; s = trim(s.substr(8)); }
     else if (s.substr(0, 8) == "WORD PTR") { op.word = true;  explicit_size = true; s = trim(s.substr(8)); }
     else if (s.substr(0, 9) == "DWORD PTR") { op.far_ptr = true; explicit_size = true; s = trim(s.substr(9)); }
-    else if (s.substr(0, 7) == "BYTEPTR") { op.word = false; explicit_size = true; s = trim(s.substr(7)); }
-    else if (s.substr(0, 7) == "WORDPTR") { op.word = true;  explicit_size = true; s = trim(s.substr(7)); }
-    else if (s.substr(0, 8) == "DWORDPTR") { op.far_ptr = true; explicit_size = true; s = trim(s.substr(8)); }
+    else if (s.substr(0, 5) == "BYTE ") { op.word = false; explicit_size = true; s = trim(s.substr(5)); }
+    else if (s.substr(0, 5) == "WORD ") { op.word = true;  explicit_size = true; s = trim(s.substr(5)); }
+    else if (s.substr(0, 6) == "DWORD ") { op.far_ptr = true; explicit_size = true; s = trim(s.substr(6)); }
+    else if (s.substr(0, 4) == "BYTE") { op.word = false; explicit_size = true; s = trim(s.substr(4)); }
+    else if (s.substr(0, 4) == "WORD") { op.word = true;  explicit_size = true; s = trim(s.substr(4)); }
+    else if (s.substr(0, 5) == "DWORD") { op.far_ptr = true; explicit_size = true; s = trim(s.substr(5)); }
 
     if (s.substr(0, 9) == "NEAR PTR ") { s = trim(s.substr(9)); }
     else if (s.substr(0, 8) == "FAR PTR ") { op.far_ptr = true; s = trim(s.substr(8)); }
@@ -388,9 +394,12 @@ void encode_instruction(const std::string& label, const std::string& mnemonic, c
                     total_elements++;
                 }
             } else {
-                bool ok = true;
-                int val = evaluate_expression(op, res, ok);
-                if (is_pass2 && !ok) { res.success = false; res.errors.push_back({line_num, "Unresolved symbol: " + op}); }
+                int val = 0;
+                if (op != "?") {
+                    bool ok = true;
+                    val = evaluate_expression(op, res, ok);
+                    if (is_pass2 && !ok) { res.success = false; res.errors.push_back({line_num, "Unresolved symbol: " + op}); }
+                }
                 emit8(code, val & 0xFF);
                 if (mnemonic == "DW" || mnemonic == "DD") emit8(code, (val >> 8) & 0xFF);
                 if (mnemonic == "DD") { emit8(code, (val >> 16) & 0xFF); emit8(code, (val >> 24) & 0xFF); }

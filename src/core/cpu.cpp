@@ -78,7 +78,7 @@ uint8_t* Memory::raw_ptr(uint32_t physical_addr) {
 
 // Calculate physical address using x86 16-bit segmented memory model
 uint32_t Memory::segment_offset(uint16_t seg, uint16_t off) {
-    return (static_cast<uint32_t>(seg) << 4) + off;
+    return ((static_cast<uint32_t>(seg) << 4) + off) & 0xFFFFF; // 8086 wraps at 1MB
 }
 
 // --- CPU ---

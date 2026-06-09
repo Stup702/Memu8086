@@ -124,8 +124,14 @@ public:
         connect(btn_float, &QPushButton::clicked, dock, [dock]() { dock->setFloating(!dock->isFloating()); });
         connect(btn_close, &QPushButton::clicked, dock, &QDockWidget::close);
 
-        connect(dock, &QDockWidget::topLevelChanged, this, [btn_float](bool floating) {
+        connect(dock, &QDockWidget::topLevelChanged, this, [this, btn_float](bool floating) {
             btn_float->setVisible(!floating);
+            if (floating) {
+                this->dock->setWindowFlags(Qt::Window);
+                this->dock->show();
+            } else {
+                this->dock->setWindowFlags(Qt::Widget);
+            }
         });
     }
 
@@ -551,6 +557,11 @@ void MainWindow::on_run() {
 }
 
 void MainWindow::on_stop() { 
+    DebuggerState state = dbg.get_state();
+    if (state == DebuggerState::HALTED || state == DebuggerState::ERROR) {
+        on_reset();
+        return;
+    }
     dbg.stop(); 
     assembled = false;
     editor->set_exec_line(-1);

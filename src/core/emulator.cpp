@@ -95,12 +95,7 @@ void Emulator::stop() {
         irq_->enqueue_key('\0');
     }
     if (exec_thread_.joinable()) {
-        for (int i = 0; i < 50; ++i) { // Wait up to 500ms
-            if (!thread_active_) break;
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
-        if (thread_active_) exec_thread_.detach();
-        else exec_thread_.join();
+        exec_thread_.join();
     }
     std::lock_guard<std::mutex> lock(cpu_mutex_);
     cpu_.reset();
@@ -302,11 +297,15 @@ void Emulator::throttle_(std::chrono::steady_clock::time_point& last_tick) {
     
     if (elapsed < expected_ns) {
         auto wait_time = expected_ns - elapsed;
-        if (wait_time > std::chrono::microseconds(500)) {
-            std::this_thread::sleep_for(wait_time);
-        } else {
-            // Fine-grained spin for smaller than OS scheduler minimum slices
-            while (std::chrono::steady_clock::now() - last_tick < expected_ns) {}
+        auto wait_end = now + wait_time;
+        while (std::chrono::steady_clock::now() < wait_end) {
+            if (state_ != EmulatorState::RUNNING) break;
+            auto remaining = std::chrono::duration_cast<std::chrono::microseconds>(wait_end - std::chrono::steady_clock::now());
+            if (remaining > std::chrono::microseconds(1000)) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            } else {
+                std::this_thread::yield();
+            }
         }
     }
     last_tick = std::chrono::steady_clock::now();

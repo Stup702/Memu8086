@@ -1,50 +1,103 @@
-# 🍎 macOS Build Guide for memu8086
+# Build Guide for memu8086
 
-Welcome to the macOS build guide for **memu8086**, a modern Intel 8086 emulator and assembler. This guide provides step-by-step instructions to compile and run the project natively on macOS (fully compatible with both Apple Silicon M-Series and Intel MacBooks).
+Welcome to the build guide for **memu8086**, a modern Intel 8086 emulator and assembler. This project is cross-platform and can be built on Linux, macOS, and Windows.
+
+---
+
+# 🐧 Linux Build Guide (Debian/Ubuntu)
+
+This guide provides step-by-step instructions to compile and run the project on Linux distributions like Ubuntu, Debian, or Linux Mint.
 
 ## 🛠 Prerequisites
 
-Before building the project, ensure you have the necessary development tools installed. The easiest way to install these on macOS is via [Homebrew](https://brew.sh/).
+Install the necessary development tools and Qt6 libraries:
 
-Open your Terminal and install the required dependencies (CMake, Ninja, and Qt6):
+```bash
+sudo apt update
+sudo apt install build-essential cmake ninja-build qt6-base-dev libgl1-mesa-dev
+```
+
+## 🚀 Build Instructions
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Stup702/Memu8086
+   cd memu8086
+   ```
+
+2. **Create a build directory:**
+   ```bash
+   mkdir build
+   cd build
+   ```
+
+3. **Configure and compile:**
+   ```bash
+   cmake .. -G Ninja
+   ninja
+   ```
+
+## 🎮 Running the Emulator
+
+Launch the emulator directly from the build directory:
+
+```bash
+./memu8086
+```
+
+---
+
+# 🍎 macOS Build Guide
+
+This guide provides instructions to compile and run the project natively on macOS (Apple Silicon or Intel).
+
+## 🛠 Prerequisites
+
+The easiest way to install dependencies is via [Homebrew](https://brew.sh/):
 
 ```bash
 brew install cmake ninja qt6
-(Note: If you haven't installed Apple's Command Line Tools yet, you might be prompted to do so. You can manually install them via xcode-select --install).
+```
+*(Note: If prompted, install Apple's Command Line Tools via `xcode-select --install`)*
 
-🚀 Build Instructions
-Follow these steps to configure and compile the emulator from the source code.
+## 🚀 Build Instructions
 
-1. Clone the repository and navigate into it:
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Stup702/Memu8086
+   cd memu8086
+   ```
 
-Bash
-git clone [https://github.com/Stup702/Memu8086](https://github.com/Stup702/Memu8086)
-cd memu8086
-2. Create a dedicated build directory:
-We use a separate build directory to keep the source code clean.
+2. **Create a build directory:**
+   ```bash
+   mkdir build
+   cd build
+   ```
 
-Bash
-mkdir build
-cd build
-3. Configure the project with CMake:
-This step tells CMake where to find the Qt6 framework installed by Homebrew.
+3. **Configure the project:**
+   This step tells CMake where to find the Qt6 framework installed by Homebrew.
+   ```bash
+   cmake .. -G Ninja -DCMAKE_PREFIX_PATH=$(brew --prefix qt6)
+   ```
 
-Bash
-cmake .. -G Ninja -DCMAKE_PREFIX_PATH=$(brew --prefix qt6)
-4. Compile the application:
+4. **Compile the application:**
+   ```bash
+   ninja
+   ```
 
-Bash
-ninja
-Note: The first time you run this, it may take a minute or two as it automatically fetches required libraries (like fmt) and compiles the core architecture.
+## 🎮 Running the Emulator
 
-🎮 Running the Emulator
-Once the build process completes successfully, a native macOS application bundle (memu8086.app) will be generated inside your build directory.
+A native macOS application bundle (`memu8086.app`) will be generated. Launch it using:
 
-Launch the emulator directly from your terminal using:
-
-Bash
+```bash
 open memu8086.app
-💡 Troubleshooting
-CMake cannot find Qt6: Ensure Homebrew is correctly added to your system's $PATH. You can verify the Qt6 path by running echo $(brew --prefix qt6) in your terminal.
+```
 
-Build Artifacts: To clean up your project or start a fresh build, simply delete the build folder (rm -rf build) and repeat the steps above.
+---
+
+## 💡 Troubleshooting
+
+- **CMake cannot find Qt6:** On macOS, ensure Homebrew's path is correctly set. You can verify it with `echo $(brew --prefix qt6)`.
+- **Clean Build:** To start fresh, delete the build folder (`rm -rf build`) and repeat the steps.
+
+
