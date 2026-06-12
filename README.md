@@ -4,11 +4,11 @@ Welcome to the build guide for **memu8086**, a modern Intel 8086 emulator and as
 
 ---
 
-# 🐧 Linux Build Guide (Debian/Ubuntu)
+# Linux Build Guide (Debian/Ubuntu)
 
 This guide provides step-by-step instructions to compile and run the project on Linux distributions like Ubuntu, Debian, or Linux Mint.
 
-## 🛠 Prerequisites
+## Prerequisites
 
 Install the necessary development tools and Qt6 libraries:
 
@@ -17,7 +17,7 @@ sudo apt update
 sudo apt install build-essential cmake ninja-build qt6-base-dev libgl1-mesa-dev
 ```
 
-## 🚀 Build Instructions
+## Build Instructions
 
 1. **Clone the repository:**
    ```bash
@@ -37,7 +37,7 @@ sudo apt install build-essential cmake ninja-build qt6-base-dev libgl1-mesa-dev
    ninja
    ```
 
-## 🎮 Running the Emulator
+## Running the Emulator
 
 Launch the emulator directly from the build directory:
 
@@ -47,11 +47,11 @@ Launch the emulator directly from the build directory:
 
 ---
 
-# 🍎 macOS Build Guide
+# macOS Build Guide
 
 This guide provides instructions to compile and run the project natively on macOS (Apple Silicon or Intel).
 
-## 🛠 Prerequisites
+## Prerequisites
 
 The easiest way to install dependencies is via [Homebrew](https://brew.sh/):
 
@@ -60,7 +60,7 @@ brew install cmake ninja qt6
 ```
 *(Note: If prompted, install Apple's Command Line Tools via `xcode-select --install`)*
 
-## 🚀 Build Instructions
+## Build Instructions
 
 1. **Clone the repository:**
    ```bash
@@ -85,7 +85,7 @@ brew install cmake ninja qt6
    ninja
    ```
 
-## 🎮 Running the Emulator
+## Running the Emulator
 
 A native macOS application bundle (`memu8086.app`) will be generated. Launch it using:
 
@@ -95,7 +95,7 @@ open memu8086.app
 
 ---
 
-## 💡 Troubleshooting
+## Troubleshooting
 
 - **CMake cannot find Qt6:** On macOS, ensure Homebrew's path is correctly set. You can verify it with `echo $(brew --prefix qt6)`.
 - **Clean Build:** To start fresh, delete the build folder (`rm -rf build`) and repeat the steps.
