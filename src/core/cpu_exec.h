@@ -43,7 +43,7 @@ private:
     int8_t   fetch_s8();
     int16_t  fetch_s16();
 
-    ModRMResult decode_modrm(uint8_t modrm, bool word, uint16_t seg_override);
+    ModRMResult decode_modrm(uint8_t modrm, bool word, uint32_t seg_override);
     uint32_t read_rm(const ModRMResult& rm, bool word);
     void     write_rm(const ModRMResult& rm, bool word, uint32_t val);
     uint16_t* get_reg16(uint8_t idx);

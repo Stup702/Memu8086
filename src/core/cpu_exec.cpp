@@ -60,7 +60,7 @@ uint16_t* Executor::get_seg_reg(uint8_t idx) {
 }
 
 // --- ModRM Decoding & Access ---
-ModRMResult Executor::decode_modrm(uint8_t modrm, bool word, uint16_t seg_override) {
+ModRMResult Executor::decode_modrm(uint8_t modrm, bool word, uint32_t seg_override) {
     ModRMResult res{};
     uint8_t mod = (modrm >> 6) & 3;
     res.reg_idx = (modrm >> 3) & 7;
@@ -90,7 +90,7 @@ ModRMResult Executor::decode_modrm(uint8_t modrm, bool word, uint16_t seg_overri
         else if (mod == 2) offset += fetch16();
 
         res.offset = offset;
-        uint16_t seg = (seg_override != 0xFFFF) ? seg_override : default_seg;
+        uint16_t seg = (seg_override != 0xFFFFFFFF) ? seg_override : default_seg;
         res.mem_addr = Memory::segment_offset(seg, offset);
     }
     return res;
@@ -177,7 +177,7 @@ bool Executor::check_jcc(uint8_t cond) {
 // --- Main Dispatch Cycle ---
 ExecResult Executor::step() {
     bool prefix = true;
-    uint16_t seg_override = 0xFFFF;
+    uint32_t seg_override = 0xFFFFFFFF;
     bool rep = false, repz = false, repnz = false;
 
     while (prefix) {
@@ -388,13 +388,13 @@ ExecResult Executor::step() {
             break;
         case 0xA0: case 0xA1: { // MOV AL/AX, moffs
             bool word = op & 1;
-            uint32_t addr = Memory::segment_offset((seg_override != 0xFFFF) ? seg_override : cpu.regs.DS, fetch16());
+            uint32_t addr = Memory::segment_offset((seg_override != 0xFFFFFFFF) ? seg_override : cpu.regs.DS, fetch16());
             if (word) cpu.regs.AX = cpu.mem.read16(addr); else cpu.regs.AL() = cpu.mem.read8(addr);
             break;
         }
         case 0xA2: case 0xA3: { // MOV moffs, AL/AX
             bool word = op & 1;
-            uint32_t addr = Memory::segment_offset((seg_override != 0xFFFF) ? seg_override : cpu.regs.DS, fetch16());
+            uint32_t addr = Memory::segment_offset((seg_override != 0xFFFFFFFF) ? seg_override : cpu.regs.DS, fetch16());
             if (word) cpu.mem.write16(addr, cpu.regs.AX); else cpu.mem.write8(addr, cpu.regs.AL());
             break;
         }
@@ -409,7 +409,7 @@ ExecResult Executor::step() {
             do {
                 if (rep && cpu.regs.CX == 0) break;
 
-                uint32_t si_addr = Memory::segment_offset((seg_override != 0xFFFF) ? seg_override : cpu.regs.DS, cpu.regs.SI);
+                uint32_t si_addr = Memory::segment_offset((seg_override != 0xFFFFFFFF) ? seg_override : cpu.regs.DS, cpu.regs.SI);
                 uint32_t di_addr = Memory::segment_offset(cpu.regs.ES, cpu.regs.DI);
                 
                 if (op == 0xA4 || op == 0xA5) { // MOVS
@@ -479,7 +479,7 @@ ExecResult Executor::step() {
             break;
         case 0xD0: case 0xD1: case 0xD2: case 0xD3: { // Shift/Rotate
             bool word = op & 1, use_cl = op & 2; uint8_t modrm = fetch8(); auto rm = decode_modrm(modrm, word, seg_override);
-            uint32_t v = read_rm(rm, word); uint8_t count = (use_cl ? cpu.regs.CL() : 1) & 0x1F;
+            uint32_t v = read_rm(rm, word); uint8_t count = (use_cl ? cpu.regs.CL() : 1);
             if (count == 0) break;
             uint8_t op_type = rm.reg_idx; uint32_t msb = word ? 0x8000 : 0x80, mask = word ? 0xFFFF : 0xFF;
             bool original_msb = (v & msb) != 0;
@@ -511,7 +511,7 @@ ExecResult Executor::step() {
         case 0xD4: { uint8_t base = fetch8(); if (base == 0) return ExecResult::DIVISION_BY_ZERO; cpu.regs.AH() = cpu.regs.AL() / base; cpu.regs.AL() %= base; cpu.update_flags_logical(cpu.regs.AL(), false); break; } // AAM
         case 0xD5: { uint8_t base = fetch8(); cpu.regs.AL() = cpu.regs.AL() + (cpu.regs.AH() * base); cpu.regs.AH() = 0; cpu.update_flags_logical(cpu.regs.AL(), false); break; } // AAD
         case 0xD7: // XLAT
-            cpu.regs.AL() = cpu.mem.read8(Memory::segment_offset((seg_override != 0xFFFF) ? seg_override : cpu.regs.DS, cpu.regs.BX + cpu.regs.AL()));
+            cpu.regs.AL() = cpu.mem.read8(Memory::segment_offset((seg_override != 0xFFFFFFFF) ? seg_override : cpu.regs.DS, cpu.regs.BX + cpu.regs.AL()));
             break;
         case 0x27: { // DAA
             uint8_t old_al = cpu.regs.AL(); bool old_cf = cpu.regs.flags.CF;
@@ -619,15 +619,18 @@ ExecResult Executor::step() {
         case 0xFD: cpu.regs.flags.DF = true; break;  // STD
         case 0xFE: case 0xFF: { // Group 4 & 5
             bool word = op & 1; uint8_t modrm = fetch8(); auto rm = decode_modrm(modrm, word, seg_override);
-            uint32_t v = read_rm(rm, word);
             switch (rm.reg_idx) {
-                case 0: { bool o_cf = cpu.regs.flags.CF; uint32_t res = v + 1; cpu.update_flags_add(v, 1, res, word); cpu.regs.flags.CF = o_cf; write_rm(rm, word, res); break; } // INC
-                case 1: { bool o_cf = cpu.regs.flags.CF; uint32_t res = v - 1; cpu.update_flags_sub(v, 1, res, word); cpu.regs.flags.CF = o_cf; write_rm(rm, word, res); break; } // DEC
-                case 2: if (word) { cpu.regs.SP -= 2; cpu.mem.write16(cpu.ss_sp(), cpu.regs.IP); cpu.regs.IP = static_cast<uint16_t>(v); } break; // CALL near
-                case 3: if (word && rm.is_mem) { uint16_t seg = cpu.mem.read16(rm.mem_addr + 2); cpu.regs.SP -= 2; cpu.mem.write16(cpu.ss_sp(), cpu.regs.CS); cpu.regs.SP -= 2; cpu.mem.write16(cpu.ss_sp(), cpu.regs.IP); cpu.regs.CS = seg; cpu.regs.IP = static_cast<uint16_t>(v); } break; // CALL far
-                case 4: if (word) cpu.regs.IP = static_cast<uint16_t>(v); break; // JMP near
-                case 5: if (word && rm.is_mem) { cpu.regs.CS = cpu.mem.read16(rm.mem_addr + 2); cpu.regs.IP = static_cast<uint16_t>(v); } break; // JMP far
-                case 6: if (word) { cpu.regs.SP -= 2; cpu.mem.write16(cpu.ss_sp(), static_cast<uint16_t>(v)); } break; // PUSH
+                case 0: { uint32_t v = read_rm(rm, word); bool o_cf = cpu.regs.flags.CF; uint32_t res = v + 1; cpu.update_flags_add(v, 1, res, word); cpu.regs.flags.CF = o_cf; write_rm(rm, word, res); break; } // INC
+                case 1: { uint32_t v = read_rm(rm, word); bool o_cf = cpu.regs.flags.CF; uint32_t res = v - 1; cpu.update_flags_sub(v, 1, res, word); cpu.regs.flags.CF = o_cf; write_rm(rm, word, res); break; } // DEC
+                case 2: if (word) { uint32_t v = read_rm(rm, word); cpu.regs.SP -= 2; cpu.mem.write16(cpu.ss_sp(), cpu.regs.IP); cpu.regs.IP = static_cast<uint16_t>(v); } break; // CALL near
+                case 3: if (word && rm.is_mem) { uint32_t v = read_rm(rm, word); uint16_t seg = cpu.mem.read16(rm.mem_addr + 2); cpu.regs.SP -= 2; cpu.mem.write16(cpu.ss_sp(), cpu.regs.CS); cpu.regs.SP -= 2; cpu.mem.write16(cpu.ss_sp(), cpu.regs.IP); cpu.regs.CS = seg; cpu.regs.IP = static_cast<uint16_t>(v); } break; // CALL far
+                case 4: if (word) { uint32_t v = read_rm(rm, word); cpu.regs.IP = static_cast<uint16_t>(v); } break; // JMP near
+                case 5: if (word && rm.is_mem) { uint32_t v = read_rm(rm, word); cpu.regs.CS = cpu.mem.read16(rm.mem_addr + 2); cpu.regs.IP = static_cast<uint16_t>(v); } break; // JMP far
+                case 6: if (word) { 
+                    cpu.regs.SP -= 2; 
+                    uint16_t val = (rm.is_mem) ? static_cast<uint16_t>(read_rm(rm, true)) : *rm.reg_ptr; 
+                    cpu.mem.write16(cpu.ss_sp(), val); 
+                } break; // PUSH
             }
             break;
         }
