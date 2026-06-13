@@ -684,7 +684,7 @@ void MainWindow::show_about() {
     QVBoxLayout* layout = new QVBoxLayout(&dlg);
     layout->setAlignment(Qt::AlignHCenter | Qt::AlignTop);
 
-    QLabel* title = new QLabel("<b>memu8086</b> v1.0.0");
+    QLabel* title = new QLabel("<b>memu8086</b> v1.0.3");
     title->setFont(Theme::ui_font(18));
     title->setAlignment(Qt::AlignCenter);
 

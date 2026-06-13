@@ -30,7 +30,7 @@ using namespace emu8086::assembler;
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     app.setApplicationName("memu8086");
-    app.setApplicationVersion("1.0.0");
+    app.setApplicationVersion("1.0.3");
     app.setOrganizationName("memu8086");
     app.setWindowIcon(QIcon(":/appicon.ico"));
 

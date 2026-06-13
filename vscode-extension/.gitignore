@@ -1,0 +1,11 @@
+# Dependency directories
+node_modules/
+
+# Build outputs
+out/
+
+# VS Code test directory
+.vscode-test/
+
+# Extension packages
+*.vsix

@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 cmake_minimum_required(VERSION 3.20)
-project(memu8086 VERSION 0.1.0 LANGUAGES CXX)
+project(memu8086 VERSION 1.0.3 LANGUAGES CXX)
 
 # Generate compile_commands.json for VS Code / clangd IntelliSense
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
