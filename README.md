@@ -100,4 +100,35 @@ open memu8086.app
 - **CMake cannot find Qt6:** On macOS, ensure Homebrew's path is correctly set. You can verify it with `echo $(brew --prefix qt6)`.
 - **Clean Build:** To start fresh, delete the build folder (`rm -rf build`) and repeat the steps.
 
+# Running the app
 
+## Running on linux
+Nothing required. Download and run
+
+## Running On macOS
+
+If you are new to macOS or just want to get the emulator up and running quickly, follow these simple steps:
+
+Step 1: Download the App
+Scroll down to the "Assets" section at the bottom of this page and click on memu8086.dmg to download it.
+
+Step 2: Open the Installer
+Once the download is finished, double-click the memu8086.dmg file. A small window will pop up showing the Memu8086 app icon.
+
+Step 3: Install It
+To install the app, simply click and drag the Memu8086 app icon into your Applications folder. You can now close the little installer window and eject the .dmg file from your desktop.
+
+Step 4: The First Launch (Important!)
+Note: Because this app is built by independent developers and not downloaded from the official Mac App Store, macOS will try to block it the very first time you open it.
+
+To bypass this safely:
+
+Open your Applications folder and find Memu8086.
+
+Do not double-click it. Instead, Right-click (or hold Control on your keyboard and click) the app icon, then select Open from the drop-down menu.
+
+A warning pop-up will appear saying the developer cannot be verified. Click the Open button in that pop-up.
+(If the "Open" button is missing, click "Cancel", then open your Mac's System Settings > Privacy & Security. Scroll down to the security section and click Open Anyway next to the Memu8086 message).
+
+Step 5: You're Done! 🎉
+The emulator will now launch! You only have to do the right-click trick once. From now on, you can just double-click the app normally from your Launchpad or Applications folder whenever you want to write some assembly code.
