@@ -378,6 +378,7 @@ ExecResult Executor::step() {
             cpu.regs.CS = seg; cpu.regs.IP = offset;
             break;
         }
+        case 0x9B: break; // WAIT (Coprocessor synchronization. Treated as NOP in this emulator)
         case 0x9C: cpu.regs.SP -= 2; cpu.mem.write16(cpu.ss_sp(), cpu.regs.flags.to_word()); break; // PUSHF
         case 0x9D: cpu.regs.flags.from_word(cpu.mem.read16(cpu.ss_sp())); cpu.regs.SP += 2; break;  // POPF
         case 0x9E: // SAHF

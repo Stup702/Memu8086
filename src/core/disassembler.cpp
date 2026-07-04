@@ -141,6 +141,7 @@ std::vector<DisasmLine> Disassembler::disassemble(const uint8_t* mem, uint32_t s
         else if (op == 0x98) { line.mnemonic = "CBW"; }
         else if (op == 0x99) { line.mnemonic = "CWD"; }
         else if (op == 0x9A) { uint16_t off = fetch16(); uint16_t seg = fetch16(); line.mnemonic = "CALL FAR"; line.operands = fmt::format("0x{:04X}:0x{:04X}", seg, off); }
+        else if (op == 0x9B) { line.mnemonic = "WAIT"; }
         else if (op == 0x9C) { line.mnemonic = "PUSHF"; }
         else if (op == 0x9D) { line.mnemonic = "POPF"; }
         else if (op == 0x9E) { line.mnemonic = "SAHF"; }

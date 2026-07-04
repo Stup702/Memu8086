@@ -18,6 +18,7 @@ struct Operand {
     int mod{0}, rm{0}, disp{0};
     bool word{true};
     bool far_ptr{false};
+    bool explicit_size{false};
     uint8_t seg_override{0};
 };
 
@@ -32,7 +33,7 @@ static const std::map<std::string, uint8_t> jcc_ops = {
     {"JNE", 0x75}, {"JNZ", 0x75}, {"JBE", 0x76}, {"JNA", 0x76}, {"JA", 0x77}, {"JNBE", 0x77},
     {"JS", 0x78}, {"JNS", 0x79}, {"JP", 0x7A}, {"JPE", 0x7A}, {"JNP", 0x7B}, {"JPO", 0x7B},
     {"JL", 0x7C}, {"JNGE", 0x7C}, {"JGE", 0x7D}, {"JNL", 0x7D}, {"JLE", 0x7E}, {"JNG", 0x7E},
-    {"JG", 0x7F}, {"JNLE", 0x7F}, {"JCXZ", 0xE3}, {"LOOP", 0xE2}, {"LOOPE", 0xE1}, {"LOOPNE", 0xE0}
+    {"JG", 0x7F}, {"JNLE", 0x7F}, {"JCXZ", 0xE3}, {"LOOP", 0xE2}, {"LOOPE", 0xE1}, {"LOOPZ", 0xE1}, {"LOOPNE", 0xE0}, {"LOOPNZ", 0xE0}
 };
 
 static const std::map<std::string, uint8_t> one_byte_ops = {
@@ -44,7 +45,8 @@ static const std::map<std::string, uint8_t> one_byte_ops = {
     {"LODSB", 0xAC}, {"LODSW", 0xAD}, {"CMPSB", 0xA6}, {"CMPSW", 0xA7},
     {"SCASB", 0xAE}, {"SCASW", 0xAF},
     {"REP", 0xF3}, {"REPE", 0xF3}, {"REPZ", 0xF3}, {"REPNE", 0xF2}, {"REPNZ", 0xF2},
-    {"XLAT", 0xD7}, {"XLATB", 0xD7}, {"SAHF", 0x9E}, {"LAHF", 0x9F}, {"LOCK", 0xF0}
+    {"XLAT", 0xD7}, {"XLATB", 0xD7}, {"SAHF", 0x9E}, {"LAHF", 0x9F}, {"LOCK", 0xF0},
+    {"INTO", 0xCE}, {"WAIT", 0x9B}
 };
 
 static const std::map<std::string, int> shift_ops = {
@@ -190,19 +192,18 @@ void parse_memory(std::string e, int& mod, int& rm, int& disp, const AssemblyRes
 Operand parse_operand(std::string s, const AssemblyResult& res, bool& ok) {
     Operand op;
     s = trim(s);
-    bool explicit_size = false;
-    if (s.substr(0, 9) == "BYTE PTR ") { op.word = false; explicit_size = true; s = trim(s.substr(9)); }
-    else if (s.substr(0, 9) == "WORD PTR ") { op.word = true;  explicit_size = true; s = trim(s.substr(9)); }
-    else if (s.substr(0, 10) == "DWORD PTR ") { op.far_ptr = true; explicit_size = true; s = trim(s.substr(10)); }
-    else if (s.substr(0, 8) == "BYTE PTR") { op.word = false; explicit_size = true; s = trim(s.substr(8)); }
-    else if (s.substr(0, 8) == "WORD PTR") { op.word = true;  explicit_size = true; s = trim(s.substr(8)); }
-    else if (s.substr(0, 9) == "DWORD PTR") { op.far_ptr = true; explicit_size = true; s = trim(s.substr(9)); }
-    else if (s.substr(0, 5) == "BYTE ") { op.word = false; explicit_size = true; s = trim(s.substr(5)); }
-    else if (s.substr(0, 5) == "WORD ") { op.word = true;  explicit_size = true; s = trim(s.substr(5)); }
-    else if (s.substr(0, 6) == "DWORD ") { op.far_ptr = true; explicit_size = true; s = trim(s.substr(6)); }
-    else if (s.substr(0, 4) == "BYTE") { op.word = false; explicit_size = true; s = trim(s.substr(4)); }
-    else if (s.substr(0, 4) == "WORD") { op.word = true;  explicit_size = true; s = trim(s.substr(4)); }
-    else if (s.substr(0, 5) == "DWORD") { op.far_ptr = true; explicit_size = true; s = trim(s.substr(5)); }
+    if (s.substr(0, 9) == "BYTE PTR ") { op.word = false; op.explicit_size = true; s = trim(s.substr(9)); }
+    else if (s.substr(0, 9) == "WORD PTR ") { op.word = true;  op.explicit_size = true; s = trim(s.substr(9)); }
+    else if (s.substr(0, 10) == "DWORD PTR ") { op.far_ptr = true; op.explicit_size = true; s = trim(s.substr(10)); }
+    else if (s.substr(0, 8) == "BYTE PTR") { op.word = false; op.explicit_size = true; s = trim(s.substr(8)); }
+    else if (s.substr(0, 8) == "WORD PTR") { op.word = true;  op.explicit_size = true; s = trim(s.substr(8)); }
+    else if (s.substr(0, 9) == "DWORD PTR") { op.far_ptr = true; op.explicit_size = true; s = trim(s.substr(9)); }
+    else if (s.substr(0, 5) == "BYTE ") { op.word = false; op.explicit_size = true; s = trim(s.substr(5)); }
+    else if (s.substr(0, 5) == "WORD ") { op.word = true;  op.explicit_size = true; s = trim(s.substr(5)); }
+    else if (s.substr(0, 6) == "DWORD ") { op.far_ptr = true; op.explicit_size = true; s = trim(s.substr(6)); }
+    else if (s.substr(0, 4) == "BYTE") { op.word = false; op.explicit_size = true; s = trim(s.substr(4)); }
+    else if (s.substr(0, 4) == "WORD") { op.word = true;  op.explicit_size = true; s = trim(s.substr(4)); }
+    else if (s.substr(0, 5) == "DWORD") { op.far_ptr = true; op.explicit_size = true; s = trim(s.substr(5)); }
 
     if (s.substr(0, 9) == "NEAR PTR ") { s = trim(s.substr(9)); }
     else if (s.substr(0, 8) == "FAR PTR ") { op.far_ptr = true; s = trim(s.substr(8)); }
@@ -424,12 +425,26 @@ void encode_instruction(const std::string& label, const std::string& mnemonic, c
         return;
     }
 
-    if (one_byte_ops.count(mnemonic)) { emit8(code, one_byte_ops.at(mnemonic)); return; }
+    if (one_byte_ops.count(mnemonic)) {
+        if (!ops.empty() && is_pass2) {
+            res.success = false; res.errors.push_back({line_num, mnemonic + " does not take any operands"});
+        }
+        emit8(code, one_byte_ops.at(mnemonic));
+        return;
+    }
 
     bool ok = true;
     Operand op1 = ops.size() > 0 ? parse_operand(ops[0], res, ok) : Operand();
     Operand op2 = ops.size() > 1 ? parse_operand(ops[1], res, ok) : Operand();
-    if (is_pass2 && !ok) { res.success = false; res.errors.push_back({line_num, "Invalid operand in " + mnemonic}); }
+    if (is_pass2 && !ok) { res.success = false; res.errors.push_back({line_num, "Invalid operand in " + mnemonic}); return; }
+
+    if (is_pass2 && ops.size() > 2) {
+        res.success = false; res.errors.push_back({line_num, "Too many operands for " + mnemonic}); return;
+    }
+    bool is_1op = (mnemonic == "INC" || mnemonic == "DEC" || grp3_ops.count(mnemonic) || mnemonic == "PUSH" || mnemonic == "POP" || jcc_ops.count(mnemonic) || mnemonic == "JMP" || mnemonic == "CALL" || mnemonic == "INT");
+    if (is_pass2 && is_1op && ops.size() != 1) {
+        res.success = false; res.errors.push_back({line_num, mnemonic + " requires exactly 1 operand"}); return;
+    }
 
     if (op1.seg_override) emit8(code, op1.seg_override);
     else if (op2.seg_override) emit8(code, op2.seg_override);
@@ -443,10 +458,18 @@ void encode_instruction(const std::string& label, const std::string& mnemonic, c
         else if (op1.type == Operand::MEM && op2.type == Operand::REG16) { emit8(code, (opc << 3) | 0x01); emit_modrm(code, op1.mod, op2.val, op1.rm, op1.disp); }
         else if (op1.type == Operand::REG8 && op2.type == Operand::MEM) { emit8(code, (opc << 3) | 0x02); emit_modrm(code, op2.mod, op1.val, op2.rm, op2.disp); }
         else if (op1.type == Operand::REG16 && op2.type == Operand::MEM) { emit8(code, (opc << 3) | 0x03); emit_modrm(code, op2.mod, op1.val, op2.rm, op2.disp); }
-        else if (op1.type == Operand::REG8 && op1.val == 0 && op2.type == Operand::IMM) { emit8(code, (opc << 3) | 0x04); emit8(code, op2.val); }
+        else if (op1.type == Operand::REG8 && op1.val == 0 && op2.type == Operand::IMM) { 
+            if (is_pass2 && (op2.val < -128 || op2.val > 255)) { res.success = false; res.errors.push_back({line_num, "Immediate value out of range"}); return; }
+            emit8(code, (opc << 3) | 0x04); emit8(code, op2.val); 
+        }
         else if (op1.type == Operand::REG16 && op1.val == 0 && op2.type == Operand::IMM) { emit8(code, (opc << 3) | 0x05); emit16(code, op2.val); }
         else if ((op1.type == Operand::REG8 || op1.type == Operand::REG16 || op1.type == Operand::MEM) && op2.type == Operand::IMM) {
+            if (op1.type == Operand::MEM && !op1.explicit_size) {
+                if (is_pass2) { res.success = false; res.errors.push_back({line_num, "Ambiguous operand size (missing BYTE PTR or WORD PTR)"}); }
+                return;
+            }
             if (op1.type == Operand::REG8 || !word) {
+                if (is_pass2 && (op2.val < -128 || op2.val > 255)) { res.success = false; res.errors.push_back({line_num, "Immediate value out of range"}); return; }
                 emit8(code, 0x80);
                 if (op1.type == Operand::REG8) emit_modrm(code, 3, opc, op1.val, 0); else emit_modrm(code, op1.mod, opc, op1.rm, op1.disp);
                 emit8(code, op2.val);
@@ -461,6 +484,14 @@ void encode_instruction(const std::string& label, const std::string& mnemonic, c
                     emit16(code, op2.val);
                 }
             }
+        } else {
+            if (is_pass2) {
+                if (op1.type == Operand::MEM && op2.type == Operand::MEM) {
+                    res.success = false; res.errors.push_back({line_num, "Cannot use memory to memory operation"});
+                } else {
+                    res.success = false; res.errors.push_back({line_num, "Invalid operand combination for " + mnemonic});
+                }
+            }
         }
         return;
     }
@@ -473,18 +504,35 @@ void encode_instruction(const std::string& label, const std::string& mnemonic, c
         else if (op1.type == Operand::REG16 && op2.type == Operand::MEM) { emit8(code, 0x8B); emit_modrm(code, op2.mod, op1.val, op2.rm, op2.disp); }
         else if (op1.type == Operand::MEM && op2.type == Operand::REG8) { emit8(code, 0x88); emit_modrm(code, op1.mod, op2.val, op1.rm, op1.disp); }
         else if (op1.type == Operand::MEM && op2.type == Operand::REG16) { emit8(code, 0x89); emit_modrm(code, op1.mod, op2.val, op1.rm, op1.disp); }
-        else if (op1.type == Operand::REG8 && op2.type == Operand::IMM) { emit8(code, 0xB0 | op1.val); emit8(code, op2.val); }
+        else if (op1.type == Operand::REG8 && op2.type == Operand::IMM) { 
+            if (is_pass2 && (op2.val < -128 || op2.val > 255)) { res.success = false; res.errors.push_back({line_num, "Immediate value out of range"}); return; }
+            emit8(code, 0xB0 | op1.val); emit8(code, op2.val); 
+        }
         else if (op1.type == Operand::REG16 && op2.type == Operand::IMM) { emit8(code, 0xB8 | op1.val); emit16(code, op2.val); }
         else if (op1.type == Operand::MEM && op2.type == Operand::IMM) {
+            if (!op1.explicit_size) {
+                if (is_pass2) { res.success = false; res.errors.push_back({line_num, "Ambiguous operand size (missing BYTE PTR or WORD PTR)"}); }
+                return;
+            }
+            if (is_pass2 && !word && (op2.val < -128 || op2.val > 255)) { res.success = false; res.errors.push_back({line_num, "Immediate value out of range"}); return; }
             emit8(code, 0xC6 | (word ? 1 : 0));
             emit_modrm(code, op1.mod, 0, op1.rm, op1.disp);
             if (word) emit16(code, op2.val); else emit8(code, op2.val);
         } else if (op1.type == Operand::SEG && (op2.type == Operand::REG16 || op2.type == Operand::MEM)) {
+            if (is_pass2 && op1.val == 1) { res.success = false; res.errors.push_back({line_num, "Cannot move into CS"}); return; }
             emit8(code, 0x8E);
             if (op2.type == Operand::REG16) emit_modrm(code, 3, op1.val, op2.val, 0); else emit_modrm(code, op2.mod, op1.val, op2.rm, op2.disp);
         } else if ((op1.type == Operand::REG16 || op1.type == Operand::MEM) && op2.type == Operand::SEG) {
             emit8(code, 0x8C);
             if (op1.type == Operand::REG16) emit_modrm(code, 3, op2.val, op1.val, 0); else emit_modrm(code, op1.mod, op2.val, op1.rm, op1.disp);
+        } else {
+            if (is_pass2) {
+                if (op1.type == Operand::MEM && op2.type == Operand::MEM) {
+                    res.success = false; res.errors.push_back({line_num, "Cannot move memory to memory"});
+                } else {
+                    res.success = false; res.errors.push_back({line_num, "Invalid operand combination for MOV"});
+                }
+            }
         }
         return;
     }
@@ -501,8 +549,10 @@ void encode_instruction(const std::string& label, const std::string& mnemonic, c
                 emit_modrm(code, 0, op1.val, 6, op2.val);
                 return;
             }
+        } else {
+            if (is_pass2) { res.success = false; res.errors.push_back({line_num, "Invalid operand combination for " + mnemonic}); }
         }
-        // Fall through to error
+        return;
     }
 
     if (mnemonic == "TEST") {
@@ -513,13 +563,29 @@ void encode_instruction(const std::string& label, const std::string& mnemonic, c
         else if (op1.type == Operand::MEM && op2.type == Operand::REG16) { emit8(code, 0x85); emit_modrm(code, op1.mod, op2.val, op1.rm, op1.disp); }
         else if (op1.type == Operand::REG8 && op2.type == Operand::MEM) { emit8(code, 0x84); emit_modrm(code, op2.mod, op1.val, op2.rm, op2.disp); }
         else if (op1.type == Operand::REG16 && op2.type == Operand::MEM) { emit8(code, 0x85); emit_modrm(code, op2.mod, op1.val, op2.rm, op2.disp); }
-        else if (op1.type == Operand::REG8 && op1.val == 0 && op2.type == Operand::IMM) { emit8(code, 0xA8); emit8(code, op2.val); }
+        else if (op1.type == Operand::REG8 && op1.val == 0 && op2.type == Operand::IMM) { 
+            if (is_pass2 && (op2.val < -128 || op2.val > 255)) { res.success = false; res.errors.push_back({line_num, "Immediate value out of range"}); return; }
+            emit8(code, 0xA8); emit8(code, op2.val); 
+        }
         else if (op1.type == Operand::REG16 && op1.val == 0 && op2.type == Operand::IMM) { emit8(code, 0xA9); emit16(code, op2.val); }
         else if ((op1.type == Operand::REG8 || op1.type == Operand::REG16 || op1.type == Operand::MEM) && op2.type == Operand::IMM) {
+            if (op1.type == Operand::MEM && !op1.explicit_size) {
+                if (is_pass2) { res.success = false; res.errors.push_back({line_num, "Ambiguous operand size (missing BYTE PTR or WORD PTR)"}); }
+                return;
+            }
+            if (is_pass2 && !word && (op2.val < -128 || op2.val > 255)) { res.success = false; res.errors.push_back({line_num, "Immediate value out of range"}); return; }
             emit8(code, 0xF6 | (word ? 1 : 0));
             if (op1.type == Operand::REG8 || op1.type == Operand::REG16) emit_modrm(code, 3, 0, op1.val, 0);
             else emit_modrm(code, op1.mod, 0, op1.rm, op1.disp);
             if (word) emit16(code, op2.val); else emit8(code, op2.val);
+        } else {
+            if (is_pass2) {
+                if (op1.type == Operand::MEM && op2.type == Operand::MEM) {
+                    res.success = false; res.errors.push_back({line_num, "Cannot use memory to memory operation"});
+                } else {
+                    res.success = false; res.errors.push_back({line_num, "Invalid operand combination for TEST"});
+                }
+            }
         }
         return;
     }
@@ -528,11 +594,16 @@ void encode_instruction(const std::string& label, const std::string& mnemonic, c
         if ((op1.type == Operand::REG8 || op1.type == Operand::REG16) && op1.val == 0) {
             bool word = (op1.type == Operand::REG16);
             if (op2.type == Operand::IMM) {
+                if (is_pass2 && (op2.val < 0 || op2.val > 255)) { res.success = false; res.errors.push_back({line_num, "Port number out of range"}); return; }
                 emit8(code, 0xE4 | (word ? 1 : 0));
                 emit8(code, op2.val);
             } else if (op2.type == Operand::REG16 && op2.val == 2) {
                 emit8(code, 0xEC | (word ? 1 : 0));
+            } else {
+                if (is_pass2) { res.success = false; res.errors.push_back({line_num, "Invalid operand combination for IN"}); }
             }
+        } else {
+            if (is_pass2) { res.success = false; res.errors.push_back({line_num, "Invalid operand combination for IN"}); }
         }
         return;
     }
@@ -541,11 +612,16 @@ void encode_instruction(const std::string& label, const std::string& mnemonic, c
         if ((op2.type == Operand::REG8 || op2.type == Operand::REG16) && op2.val == 0) {
             bool word = (op2.type == Operand::REG16);
             if (op1.type == Operand::IMM) {
+                if (is_pass2 && (op1.val < 0 || op1.val > 255)) { res.success = false; res.errors.push_back({line_num, "Port number out of range"}); return; }
                 emit8(code, 0xE6 | (word ? 1 : 0));
                 emit8(code, op1.val);
             } else if (op1.type == Operand::REG16 && op1.val == 2) {
                 emit8(code, 0xEE | (word ? 1 : 0));
+            } else {
+                if (is_pass2) { res.success = false; res.errors.push_back({line_num, "Invalid operand combination for OUT"}); }
             }
+        } else {
+            if (is_pass2) { res.success = false; res.errors.push_back({line_num, "Invalid operand combination for OUT"}); }
         }
         return;
     }
@@ -561,16 +637,31 @@ void encode_instruction(const std::string& label, const std::string& mnemonic, c
         else if (op1.type == Operand::MEM && op2.type == Operand::REG16) { emit8(code, 0x87); emit_modrm(code, op1.mod, op2.val, op1.rm, op1.disp); }
         else if (op1.type == Operand::REG8 && op2.type == Operand::MEM) { emit8(code, 0x86); emit_modrm(code, op2.mod, op1.val, op2.rm, op2.disp); }
         else if (op1.type == Operand::REG16 && op2.type == Operand::MEM) { emit8(code, 0x87); emit_modrm(code, op2.mod, op1.val, op2.rm, op2.disp); }
+        else {
+            if (is_pass2) {
+                if (op1.type == Operand::MEM && op2.type == Operand::MEM) {
+                    res.success = false; res.errors.push_back({line_num, "Cannot exchange memory with memory"});
+                } else {
+                    res.success = false; res.errors.push_back({line_num, "Invalid operand combination for XCHG"});
+                }
+            }
+        }
         return;
     }
 
     if (mnemonic == "INC" || mnemonic == "DEC") {
         int opc = (mnemonic == "INC") ? 0 : 1;
         if (op1.type == Operand::REG16) emit8(code, 0x40 | (opc << 3) | op1.val);
-        else {
+        else if (op1.type == Operand::REG8 || op1.type == Operand::MEM) {
+            if (op1.type == Operand::MEM && !op1.explicit_size) {
+                if (is_pass2) { res.success = false; res.errors.push_back({line_num, "Ambiguous operand size (missing BYTE PTR or WORD PTR)"}); }
+                return;
+            }
             bool word = (op1.type == Operand::REG16 || op1.word);
             emit8(code, 0xFE | (word ? 1 : 0));
             if (op1.type == Operand::REG8) emit_modrm(code, 3, opc, op1.val, 0); else emit_modrm(code, op1.mod, opc, op1.rm, op1.disp);
+        } else {
+            if (is_pass2) { res.success = false; res.errors.push_back({line_num, "Invalid operand for " + mnemonic}); }
         }
         return;
     }
@@ -578,31 +669,62 @@ void encode_instruction(const std::string& label, const std::string& mnemonic, c
     if (shift_ops.count(mnemonic)) {
         int opc = shift_ops.at(mnemonic);
         bool by_cl = (ops.size() > 1 && op2.type == Operand::REG8 && op2.val == 1);
-        bool word = (op1.type == Operand::REG16 || (op1.type == Operand::MEM && op1.word));
-        emit8(code, (by_cl ? 0xD2 : 0xD0) | (word ? 1 : 0));
-        if (op1.type == Operand::REG8 || op1.type == Operand::REG16) emit_modrm(code, 3, opc, op1.val, 0);
-        else emit_modrm(code, op1.mod, opc, op1.rm, op1.disp);
+        if (ops.size() > 1 && !(op2.type == Operand::IMM && op2.val == 1) && !by_cl) {
+            if (is_pass2) { res.success = false; res.errors.push_back({line_num, "Shift count must be 1 or CL"}); return; }
+        }
+        if (op1.type == Operand::REG8 || op1.type == Operand::REG16 || op1.type == Operand::MEM) {
+            if (op1.type == Operand::MEM && !op1.explicit_size) {
+                if (is_pass2) { res.success = false; res.errors.push_back({line_num, "Ambiguous operand size (missing BYTE PTR or WORD PTR)"}); }
+                return;
+            }
+            bool word = (op1.type == Operand::REG16 || (op1.type == Operand::MEM && op1.word));
+            emit8(code, (by_cl ? 0xD2 : 0xD0) | (word ? 1 : 0));
+            if (op1.type == Operand::REG8 || op1.type == Operand::REG16) emit_modrm(code, 3, opc, op1.val, 0);
+            else emit_modrm(code, op1.mod, opc, op1.rm, op1.disp);
+        } else {
+            if (is_pass2) { res.success = false; res.errors.push_back({line_num, "Invalid operand for " + mnemonic}); }
+        }
         return;
     }
 
     if (grp3_ops.count(mnemonic)) {
         int opc = grp3_ops.at(mnemonic);
-        bool word = (op1.type == Operand::REG16 || (op1.type == Operand::MEM && op1.word));
-        emit8(code, 0xF6 | (word ? 1 : 0));
-        if (op1.type == Operand::REG8 || op1.type == Operand::REG16) emit_modrm(code, 3, opc, op1.val, 0);
-        else emit_modrm(code, op1.mod, opc, op1.rm, op1.disp);
+        if (op1.type == Operand::REG8 || op1.type == Operand::REG16 || op1.type == Operand::MEM) {
+            if (op1.type == Operand::MEM && !op1.explicit_size) {
+                if (is_pass2) { res.success = false; res.errors.push_back({line_num, "Ambiguous operand size (missing BYTE PTR or WORD PTR)"}); }
+                return;
+            }
+            bool word = (op1.type == Operand::REG16 || (op1.type == Operand::MEM && op1.word));
+            emit8(code, 0xF6 | (word ? 1 : 0));
+            if (op1.type == Operand::REG8 || op1.type == Operand::REG16) emit_modrm(code, 3, opc, op1.val, 0);
+            else emit_modrm(code, op1.mod, opc, op1.rm, op1.disp);
+        } else {
+            if (is_pass2) { res.success = false; res.errors.push_back({line_num, "Invalid operand for " + mnemonic}); }
+        }
         return;
     }
 
     if (mnemonic == "PUSH" || mnemonic == "POP") {
         int opc = (mnemonic == "PUSH") ? 6 : 0;
         if (op1.type == Operand::REG16) emit8(code, (mnemonic == "PUSH" ? 0x50 : 0x58) | op1.val);
-        else if (op1.type == Operand::SEG) emit8(code, (mnemonic == "PUSH" ? 0x06 : 0x07) | (op1.val << 3));
+        else if (op1.type == Operand::SEG) {
+            if (mnemonic == "POP" && op1.val == 1) {
+                if (is_pass2) { res.success = false; res.errors.push_back({line_num, "Cannot POP CS"}); }
+            } else {
+                emit8(code, (mnemonic == "PUSH" ? 0x06 : 0x07) | (op1.val << 3));
+            }
+        }
         else if (op1.type == Operand::IMM && mnemonic == "PUSH") {
             if (op1.val >= -128 && op1.val <= 127) { emit8(code, 0x6A); emit8(code, op1.val); } else { emit8(code, 0x68); emit16(code, op1.val); }
         } else if (op1.type == Operand::MEM) {
+            if (op1.explicit_size && !op1.word) {
+                if (is_pass2) { res.success = false; res.errors.push_back({line_num, "Cannot PUSH or POP a byte"}); }
+                return;
+            }
             emit8(code, mnemonic == "PUSH" ? 0xFF : 0x8F);
             emit_modrm(code, op1.mod, opc, op1.rm, op1.disp);
+        } else {
+            if (is_pass2) { res.success = false; res.errors.push_back({line_num, "Invalid operand for " + mnemonic}); }
         }
         return;
     }
@@ -626,19 +748,45 @@ void encode_instruction(const std::string& label, const std::string& mnemonic, c
                 if (short_jmp) { emit8(code, 0xEB); emit8(code, rel); }
                 else { emit8(code, mnemonic == "JMP" ? 0xE9 : 0xE8); emit16(code, rel); }
             }
+        } else if (op1.type == Operand::REG16 || op1.type == Operand::MEM) {
+            if (op1.far_ptr && op1.type == Operand::REG16) {
+                if (is_pass2) { res.success = false; res.errors.push_back({line_num, "Cannot perform far jump/call through a register"}); }
+            } else {
+                emit8(code, 0xFF);
+                int opc = mnemonic == "JMP" ? (op1.far_ptr ? 5 : 4) : (op1.far_ptr ? 3 : 2);
+                if (op1.type == Operand::REG16) emit_modrm(code, 3, opc, op1.val, 0); else emit_modrm(code, op1.mod, opc, op1.rm, op1.disp);
+            }
         } else {
-            emit8(code, 0xFF);
-            int opc = mnemonic == "JMP" ? (op1.far_ptr ? 5 : 4) : (op1.far_ptr ? 3 : 2);
-            if (op1.type == Operand::REG16) emit_modrm(code, 3, opc, op1.val, 0); else emit_modrm(code, op1.mod, opc, op1.rm, op1.disp);
+            if (is_pass2) { res.success = false; res.errors.push_back({line_num, "Invalid operand for " + mnemonic + " (must be 16-bit register or memory)"}); }
         }
         return;
     }
 
-    if (mnemonic == "RET") { if (ops.empty()) emit8(code, 0xC3); else { emit8(code, 0xC2); emit16(code, op1.val); } return; }
-    if (mnemonic == "RETF") { if (ops.empty()) emit8(code, 0xCB); else { emit8(code, 0xCA); emit16(code, op1.val); } return; }
-    if (mnemonic == "INT") { if (op1.val == 3) emit8(code, 0xCC); else { emit8(code, 0xCD); emit8(code, op1.val); } return; }
+    if (mnemonic == "RET") {
+        if (is_pass2 && ops.size() > 1) { res.success = false; res.errors.push_back({line_num, "Too many operands for RET"}); return; }
+        if (ops.empty()) emit8(code, 0xC3);
+        else if (op1.type == Operand::IMM) { emit8(code, 0xC2); emit16(code, op1.val); }
+        else if (is_pass2) { res.success = false; res.errors.push_back({line_num, "RET requires an immediate operand"}); }
+        return;
+    }
+    if (mnemonic == "RETF") {
+        if (is_pass2 && ops.size() > 1) { res.success = false; res.errors.push_back({line_num, "Too many operands for RETF"}); return; }
+        if (ops.empty()) emit8(code, 0xCB);
+        else if (op1.type == Operand::IMM) { emit8(code, 0xCA); emit16(code, op1.val); }
+        else if (is_pass2) { res.success = false; res.errors.push_back({line_num, "RETF requires an immediate operand"}); }
+        return;
+    }
+    if (mnemonic == "INT") {
+        if (!ops.empty() && op1.type == Operand::IMM) {
+            if (op1.val == 3) emit8(code, 0xCC); else { emit8(code, 0xCD); emit8(code, op1.val); }
+        } else if (is_pass2) {
+            res.success = false; res.errors.push_back({line_num, "INT requires an immediate operand"});
+        }
+        return;
+    }
     
     if (mnemonic == "AAM" || mnemonic == "AAD") {
+        if (is_pass2 && ops.size() > 1) { res.success = false; res.errors.push_back({line_num, "Too many operands for " + mnemonic}); return; }
         emit8(code, mnemonic == "AAM" ? 0xD4 : 0xD5);
         if (ops.empty()) emit8(code, 0x0A);
         else { bool ok = true; emit8(code, evaluate_expression(ops[0], res, ok)); }

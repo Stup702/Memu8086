@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(memu8086 VERSION 0.1.0 LANGUAGES CXX)
+project(memu8086 VERSION 1.0.3 LANGUAGES CXX)
 
 # Enforce C++17 standard
 set(CMAKE_CXX_STANDARD 17)

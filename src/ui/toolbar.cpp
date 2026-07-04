@@ -14,12 +14,6 @@ Toolbar::Toolbar(QWidget* parent) : QToolBar(parent) {
     setFloatable(false);
 
     btn_assemble  = make_tool_button("▶▶", "Assemble",  "F5",  "btn_assemble");
-    QToolButton* btn_assemble_run = make_tool_button("⚙▶", "Assemble & Run", "F6", "btn_assemble_run");
-    connect(btn_assemble_run, &QToolButton::clicked, this, [this]() {
-        emit stop_clicked();
-        emit assemble_clicked();
-        emit run_clicked();
-    });
 
     btn_run       = make_tool_button("▶",  "Run",       "F9",  "btn_run");
     btn_stop      = make_tool_button("⏸",  "Stop",      "Esc", "btn_stop");
@@ -53,7 +47,7 @@ Toolbar::Toolbar(QWidget* parent) : QToolBar(parent) {
     lbl_cycles->setStyleSheet(QStringLiteral("color: %1;").arg(Theme::Color::TEXT_MUTED));
 
     addWidget(btn_assemble);
-    addWidget(btn_assemble_run);
+
     addWidget(btn_run);
     addWidget(btn_stop);
     addWidget(btn_step);
