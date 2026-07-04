@@ -99,7 +99,7 @@ private:
     Memory& mem;
     ConsoleState& console;
     CPUSnapshot prev_snapshot_;
-    float speed_ips_ = 1000.0f;
+    float speed_ips_ = 3.0f;
     float instr_accumulator_ = 0.0f;
     std::set<uint16_t> breakpoints_;
     std::string last_error_;

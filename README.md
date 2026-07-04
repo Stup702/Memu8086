@@ -95,6 +95,51 @@ open memu8086.app
 
 ---
 
+# Windows Build Guide
+
+This guide provides instructions to compile the project natively on Windows using MSVC.
+
+## Prerequisites
+
+1. Install **Visual Studio** (2019 or 2022) with the "Desktop development with C++" workload.
+2. Install **CMake** (usually included with Visual Studio).
+3. Install **Qt6** using the official Qt Online Installer (select the MSVC 64-bit component).
+
+## Build Instructions
+
+1. **Clone the repository:**
+   ```cmd
+   git clone https://github.com/Stup702/Memu8086
+   cd memu8086
+   ```
+
+2. **Create a build directory:**
+   ```cmd
+   mkdir build
+   cd build
+   ```
+
+3. **Configure the project:**
+   Open a **Developer Command Prompt for VS** and configure CMake, pointing it to your Qt installation path:
+   ```cmd
+   cmake .. -DCMAKE_PREFIX_PATH="C:\Qt\6.x.x\msvc2019_64"
+   ```
+
+4. **Compile the application:**
+   ```cmd
+   cmake --build . --config Release
+   ```
+
+## Running the Emulator
+
+The executable will be located in the `Release` directory:
+```cmd
+.\Release\memu8086.exe
+```
+*(Note: To run it outside the Developer Prompt, you may need to use the `windeployqt` tool provided by Qt to bundle the necessary DLLs alongside the `.exe`.)*
+
+---
+
 ## Troubleshooting
 
 - **CMake cannot find Qt6:** On macOS, ensure Homebrew's path is correctly set. You can verify it with `echo $(brew --prefix qt6)`.

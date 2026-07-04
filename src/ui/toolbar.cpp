@@ -77,7 +77,7 @@ Toolbar::Toolbar(QWidget* parent) : QToolBar(parent) {
     anim_timer = new QTimer(this);
     connect(anim_timer, &QTimer::timeout, this, &Toolbar::animate_status);
 
-    set_speed(1000.0f); // Default 1 kHz
+    set_speed(3.0f); // Default 3 Hz
     sync_state(emu8086::core::DebuggerState::IDLE);
 }
 
