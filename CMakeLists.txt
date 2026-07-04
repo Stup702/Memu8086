@@ -150,7 +150,7 @@ set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A modern Intel 8086 emulator and assemble
 set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
 
 if(WIN32)
-    set(CPACK_GENERATOR "ZIP") # Creates a portable Windows ZIP
+    set(CPACK_GENERATOR "NSIS;ZIP") # Creates a Windows Installer (.exe) and a portable Windows ZIP
 elseif(APPLE)
     set(CPACK_GENERATOR "DragNDrop") # Creates a macOS .dmg installer
 else()

@@ -25,11 +25,18 @@ jobs:
     - name: Build Memu8086
       run: cmake --build build --config Release
       
-    - name: Bundle Qt DLLs and Executable
-      run: cmake --install build --prefix "${{ github.workspace }}/deploy" --config Release
+    - name: Generate Installers
+      working-directory: build
+      run: cpack -C Release
       
-    - name: Upload Windows Build
+    - name: Upload Windows Portable ZIP
       uses: actions/upload-artifact@v4
       with:
-        name: memu8086-windows-release
-        path: deploy/
+        name: memu8086-windows-portable
+        path: build/*.zip
+        
+    - name: Upload Windows Installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: memu8086-windows-installer
+        path: build/*.exe
