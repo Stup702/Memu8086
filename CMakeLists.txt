@@ -99,7 +99,7 @@ target_link_libraries(memu8086 PRIVATE
 
 # Enable strict warnings and MSVC compliance based on the compiler
 if(MSVC)
-    target_compile_options(memu8086 PRIVATE /W4 /Zc:__cplusplus /permissive- /FI"iterator")
+    target_compile_options(memu8086 PRIVATE /W4 /Zc:__cplusplus /permissive-)
 else()
     target_compile_options(memu8086 PRIVATE -Wall -Wextra)
 endif()
@@ -122,7 +122,7 @@ if(BUILD_TESTS)
 
     # Enable strict warnings and MSVC compliance based on the compiler
     if(MSVC)
-        target_compile_options(test_runner PRIVATE /W4 /Zc:__cplusplus /permissive- /FS /FI"iterator")
+        target_compile_options(test_runner PRIVATE /W4 /Zc:__cplusplus /permissive- /FS)
     else()
         target_compile_options(test_runner PRIVATE -Wall -Wextra)
     endif()
