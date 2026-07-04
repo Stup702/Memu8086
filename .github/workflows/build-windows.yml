@@ -26,7 +26,7 @@ jobs:
       run: cmake --build build --config Release
       
     - name: Bundle Qt DLLs and Executable
-      run: cmake --install build --prefix deploy --config Release
+      run: cmake --install build --prefix "${{ github.workspace }}/deploy" --config Release
       
     - name: Upload Windows Build
       uses: actions/upload-artifact@v4
