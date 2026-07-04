@@ -141,6 +141,10 @@ if(COMMAND qt_generate_deploy_app_script)
         NO_UNSUPPORTED_PLATFORM_ERROR
     )
     install(SCRIPT "${deploy_script}")
+
+    if(APPLE)
+        install(CODE "execute_process(COMMAND codesign --force --deep -s - \"\${CMAKE_INSTALL_PREFIX}/memu8086.app\")")
+    endif()
 endif()
 
 # --- CPack Packaging Configuration ---
