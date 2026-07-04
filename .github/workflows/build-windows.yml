@@ -25,6 +25,9 @@ jobs:
     - name: Build Memu8086
       run: cmake --build build --config Release
       
+    - name: Install NSIS
+      run: choco install nsis -y
+      
     - name: Generate Installers
       working-directory: build
       run: cpack -C Release
