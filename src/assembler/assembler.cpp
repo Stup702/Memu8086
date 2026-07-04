@@ -261,7 +261,7 @@ Operand parse_operand(std::string s, const AssemblyResult& res, bool& ok) {
         std::string suffix = trim(s.substr(rbracket + 1));
         
         if (!prefix.empty() && res.sym_types.count(prefix)) {
-            if (!explicit_size) op.word = (res.sym_types.at(prefix) != 1);
+            if (!op.explicit_size) op.word = (res.sym_types.at(prefix) != 1);
         }
         
         std::string combined = prefix;
@@ -280,7 +280,7 @@ Operand parse_operand(std::string s, const AssemblyResult& res, bool& ok) {
     // Handle implicit memory variables (e.g. mov bl, len -> mov bl, [len])
     if (res.sym_types.count(s)) {
         op.type = Operand::MEM;
-        if (!explicit_size) op.word = (res.sym_types.at(s) != 1);
+        if (!op.explicit_size) op.word = (res.sym_types.at(s) != 1);
         parse_memory("[" + s + "]", op.mod, op.rm, op.disp, res, ok);
         return op;
     }
