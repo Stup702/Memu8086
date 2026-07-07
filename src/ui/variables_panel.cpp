@@ -101,7 +101,10 @@ void VariablesPanel::rebuild_table(const emu8086::core::CPU& cpu) {
         auto* it_valh = new QTableWidgetItem(QString("0x%1").arg(val, type == "byte" ? 2 : 4, 16, QChar('0')).toUpper());
         auto* it_high = new QTableWidgetItem(type == "word" ? QString("0x%1").arg(val >> 8, 2, 16, QChar('0')).toUpper() : "-");
         auto* it_low = new QTableWidgetItem(QString("0x%1").arg(val & 0xFF, 2, 16, QChar('0')).toUpper());
-        auto* it_vald = new QTableWidgetItem(QString::number(val));
+        QString dec_str = QString::number(val);
+        if (type == "byte" && val >= 0x80) dec_str += QString(" (%1)").arg(static_cast<int8_t>(val));
+        else if (type == "word" && val >= 0x8000) dec_str += QString(" (%1)").arg(static_cast<int16_t>(val));
+        auto* it_vald = new QTableWidgetItem(dec_str);
         auto* it_type = new QTableWidgetItem(type);
         
         it_addr->setFont(Theme::mono_font(12));
