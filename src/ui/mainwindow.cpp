@@ -663,6 +663,9 @@ void MainWindow::on_save_file() {
 void MainWindow::on_save_as() {
     QString file_name = QFileDialog::getSaveFileName(this, "Save Assembly File", "", "Assembly (*.asm *.s);;All Files (*.*)");
     if (!file_name.isEmpty()) {
+        if (!file_name.endsWith(".asm", Qt::CaseInsensitive) && !file_name.endsWith(".s", Qt::CaseInsensitive)) {
+            file_name += ".asm";
+        }
         current_file = file_name;
         on_save_file();
         
