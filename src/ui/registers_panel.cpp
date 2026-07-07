@@ -153,7 +153,11 @@ void RegistersPanel::update_reg_row(int /*row*/, const QString& name, uint16_t v
         QTimer::singleShot(150, this, [this, name]() { reg_hex_items[name]->setForeground(QColor(Theme::Color::TEXT)); });
     }
     reg_hex_items[name]->setText(QString("0x%1").arg(val, 4, 16, QChar('0')).toUpper());
-    reg_dec_items[name]->setText(QString::number(val));
+    QString dec_str = QString::number(val);
+    if (val >= 0x8000) {
+        dec_str += QString(" (%1)").arg(static_cast<int16_t>(val));
+    }
+    reg_dec_items[name]->setText(dec_str);
     QString bin = QString("%1").arg(val, 16, 2, QChar('0'));
     bin.insert(12, ' '); bin.insert(8, ' '); bin.insert(4, ' ');
     reg_bin_items[name]->setText(bin);
