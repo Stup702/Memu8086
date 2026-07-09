@@ -1,0 +1,80 @@
+{
+  "name": "memu8086",
+  "displayName": "MEMU8086",
+  "description": "A modern Intel 8086 emulator and assembler.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Debuggers",
+    "Programming Languages"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "memu8086-sidebar",
+          "title": "MEMU8086",
+          "icon": "$(chip)"
+        }
+      ]
+    },
+    "views": {
+      "memu8086-sidebar": [
+        {
+          "type": "webview",
+          "id": "memu8086.dashboardView",
+          "name": "Dashboard"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "memu8086.run",
+        "title": "MEMU8086: Run",
+        "icon": "$(play)"
+      },
+      {
+        "command": "memu8086.step",
+        "title": "MEMU8086: Step",
+        "icon": "$(debug-step-over)"
+      },
+      {
+        "command": "memu8086.reset",
+        "title": "MEMU8086: Reset",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "memu8086.run",
+          "group": "navigation@1"
+        },
+        {
+          "command": "memu8086.step",
+          "group": "navigation@2"
+        },
+        {
+          "command": "memu8086.reset",
+          "group": "navigation@3"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "18.x",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.1.3"
+  },
+  "dependencies": {
+    "@vscode/debugadapter": "^1.68.0"
+  }
+}
