@@ -820,7 +820,7 @@ AssemblyResult Assembler::assemble(const std::string& source, uint16_t origin) {
     for (int p = 0; p < passes; p++) {
         AssemblerState state;
         uint16_t code_LC = origin;
-        uint16_t data_LC = static_cast<uint16_t>(origin + prev_code_size);
+        uint16_t data_LC = res.has_model_directive ? 0x0000 : static_cast<uint16_t>(origin + prev_code_size);
 
         bool is_pass2 = (p == passes - 1);
         if (is_pass2) {
@@ -830,8 +830,9 @@ AssemblyResult Assembler::assemble(const std::string& source, uint16_t origin) {
         std::vector<uint8_t> code_bytes;
         std::vector<uint8_t> data_bytes;
 
-        res.symbols["@DATA"] = 0;
-        res.symbols["@data"] = 0;
+        uint16_t code_paragraphs = (prev_code_size + 15) / 16;
+        res.symbols["@DATA"] = res.has_model_directive ? (0x0710 + code_paragraphs) : 0;
+        res.symbols["@data"] = res.symbols["@DATA"];
 
         for (auto& line : lines) {
             uint16_t& LC = (state.current_seg == AssemblerState::Segment::DATA) ? data_LC : code_LC;
@@ -875,7 +876,7 @@ AssemblyResult Assembler::assemble(const std::string& source, uint16_t origin) {
                 continue;
             }
 
-            if (is_pass2) {
+            if (is_pass2 && state.current_seg == AssemblerState::Segment::CODE) {
                 res.line_to_offset[line.line_num] = LC;
                 res.offset_to_line[LC] = line.line_num;
             }
@@ -892,6 +893,9 @@ AssemblyResult Assembler::assemble(const std::string& source, uint16_t origin) {
         if (is_pass2) {
             res.machine_code = code_bytes;
             res.machine_code.insert(res.machine_code.end(), data_bytes.begin(), data_bytes.end());
+            res.code_bytes = code_bytes;
+            res.data_bytes = data_bytes;
+            res.stack_size = state.stack_size;
             res.code_segment_offset = origin;
             res.data_segment_offset = static_cast<uint16_t>(origin + prev_code_size);
         }

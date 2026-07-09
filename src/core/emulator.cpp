@@ -65,7 +65,42 @@ bool Emulator::load_from_assembly(const std::string& source) {
     assembler::Assembler asmb;
     last_asm_ = asmb.assemble(source, 0x0100);
     if (last_asm_.success) {
-        return load_com(last_asm_.machine_code, 0x0100);
+        if (last_asm_.has_model_directive) {
+            stop();
+            std::lock_guard<std::mutex> lock(cpu_mutex_);
+            cpu_.reset();
+            executor_->reset();
+            irq_ = std::make_unique<InterruptHandler>(cpu_, *io_device_);
+            
+            // Code loaded at 0x0710 (Segment 0710)
+            for (size_t i = 0; i < last_asm_.code_bytes.size(); ++i) {
+                if (0x07100 + i < MEMORY_SIZE) {
+                    cpu_.mem.write8(0x07100 + i, last_asm_.code_bytes[i]);
+                }
+            }
+            
+            // Data loaded at dynamically calculated segment
+            uint16_t data_segment = 0x0710 + ((last_asm_.code_bytes.size() + 15) / 16);
+            for (size_t i = 0; i < last_asm_.data_bytes.size(); ++i) {
+                uint32_t addr = (data_segment * 16) + i;
+                if (addr < MEMORY_SIZE) {
+                    cpu_.mem.write8(addr, last_asm_.data_bytes[i]);
+                }
+            }
+
+            // Set Registers
+            cpu_.regs.CS = 0x0710;
+            cpu_.regs.IP = 0x0000;
+            cpu_.regs.DS = 0x0700; // PSP (requires MOV AX, @DATA)
+            cpu_.regs.ES = 0x0700;
+            cpu_.regs.SS = data_segment + ((last_asm_.data_bytes.size() + 15) / 16); // Stack follows data
+            cpu_.regs.SP = last_asm_.stack_size;
+            
+            state_ = EmulatorState::IDLE;
+            return true;
+        } else {
+            return load_com(last_asm_.machine_code, 0x0100);
+        }
     }
     return false;
 }

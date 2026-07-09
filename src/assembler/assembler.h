@@ -31,6 +31,8 @@ struct AssemblerError {
 struct AssemblyResult {
     bool success{true};
     std::vector<uint8_t> machine_code;
+    std::vector<uint8_t> code_bytes;
+    std::vector<uint8_t> data_bytes;
     std::vector<AssemblerError> errors;
     std::map<int, uint16_t> line_to_offset;
     std::map<uint16_t, int> offset_to_line;
@@ -38,6 +40,7 @@ struct AssemblyResult {
 
     uint16_t data_segment_offset = 0;
     uint16_t code_segment_offset = 0x100;
+    uint16_t stack_size = 0x100;
     bool has_model_directive = false;
 
     std::map<std::string, int> sym_lengths;
