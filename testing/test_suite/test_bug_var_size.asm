@@ -15,7 +15,7 @@ MOV DS, AX
 
 MOV name_here, 2341h
 
-	MOV AH, 4Ch    ; DOS interrupt code to terminate program
+	MOV AX, 4C00h    ; DOS interrupt code to terminate program
     INT 21h   
 MAIN ENDP
 END MAIN
