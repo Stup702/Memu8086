@@ -94,18 +94,19 @@ TestResult TestRunner::run_file(const std::string& file_path) {
         if (exp.type == Expectation::Type::ASM_ERROR) expect_asm_error = true;
     }
 
-    emu8086::assembler::Assembler asmb;
-    auto asm_res = asmb.assemble(source, 0x0100);
+    emu8086::core::Emulator emu;
+    bool load_success = emu.load_from_assembly(source);
+    auto asm_res = emu.last_assembly();
     
     if (expect_asm_error) {
-        if (asm_res.success) {
+        if (load_success) {
             result.success = false;
             result.errors.push_back("Expected assembly to fail, but it succeeded.");
         }
         return result;
     }
 
-    if (!asm_res.success) {
+    if (!load_success) {
         result.success = false;
         result.errors.push_back("Assembly failed:");
         for (const auto& err : asm_res.errors) {
@@ -113,9 +114,6 @@ TestResult TestRunner::run_file(const std::string& file_path) {
         }
         return result;
     }
-
-    emu8086::core::Emulator emu;
-    emu.load_com(asm_res.machine_code, 0x0100);
 
     const uint32_t MAX_CYCLES = 1000000;
     uint32_t cycles = 0;
