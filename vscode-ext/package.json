@@ -2,7 +2,13 @@
   "name": "memu8086",
   "displayName": "MEMU8086",
   "description": "A modern Intel 8086 emulator and assembler.",
-  "version": "0.0.1",
+  "author": "Animesh Barua Mugdha",
+  "publisher": "stup702",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Stup702/Memu8086"
+  },
+  "version": "0.7.85",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -64,7 +70,7 @@
     "commands": [
       {
         "command": "memu8086.chippingIn",
-        "title": "MEMU8086: Debug with Chipping In",
+        "title": "MEMU8086: Chipping In",
         "icon": "$(play)"
       }
     ],

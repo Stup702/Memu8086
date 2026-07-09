@@ -70,10 +70,16 @@ export class MemuDashboardProvider implements vscode.WebviewViewProvider {
         webviewView.webview.onDidReceiveMessage(async msg => {
             if (msg.command === 'toggleStack') {
                 this._showStack = !this._showStack;
+                if (!this._inspectorPanel && this._showStack) {
+                    this.openInspector(false);
+                }
                 this.broadcastToggles();
             }
             if (msg.command === 'toggleMemory') {
                 this._showMemory = !this._showMemory;
+                if (!this._inspectorPanel && this._showMemory) {
+                    this.openInspector(false);
+                }
                 this.broadcastToggles();
             }
             if (msg.command === 'viewMemory') {
@@ -213,6 +219,9 @@ export class MemuDashboardProvider implements vscode.WebviewViewProvider {
             vscode.postMessage({ command: 'viewMemory', address: address });
         }
 
+        let lastRegs = null;
+        let lastFlags = null;
+
         window.addEventListener('message', event => {
             const msg = event.data;
             if (msg.command === 'updateUI') {
@@ -241,11 +250,17 @@ export class MemuDashboardProvider implements vscode.WebviewViewProvider {
                 let grid = '<div class="regs-grid">';
                 for (const r of g.keys) {
                     const val = regs[r].toString(16).padStart(4, '0').toUpperCase();
+                    let highlight = '';
+                    if (lastRegs && lastRegs[r] !== regs[r]) {
+                        highlight = 'color: #d7ba7d; text-shadow: 0 0 5px rgba(215,186,125,0.5);';
+                    }
+                    const tooltip = \`Unsigned: \${regs[r]} \\nSigned: \${regs[r] > 32767 ? regs[r] - 65536 : regs[r]} \\nBinary: \${regs[r].toString(2).padStart(16, '0')}\`;
+                    
                     if (g.name === "Segment") {
                         const addr = regs[r] * 16;
-                        grid += \`<div class="reg-box" style="cursor:pointer" onclick="viewMemory(\${addr})" title="View memory at this segment"><span class="reg-name">\${r}</span> 0x\${val}</div>\`;
+                        grid += \`<div class="reg-box" style="cursor:pointer" onclick="viewMemory(\${addr})" title="\${tooltip}"><span class="reg-name">\${r}</span> <span style="\${highlight}">0x\${val}</span></div>\`;
                     } else {
-                        grid += \`<div class="reg-box"><span class="reg-name">\${r}</span> 0x\${val}</div>\`;
+                        grid += \`<div class="reg-box" title="\${tooltip}"><span class="reg-name">\${r}</span> <span style="\${highlight}">0x\${val}</span></div>\`;
                     }
                 }
                 grid += '</div>';
@@ -258,7 +273,12 @@ export class MemuDashboardProvider implements vscode.WebviewViewProvider {
             const flagNames = ['CF', 'PF', 'AF', 'ZF', 'SF', 'TF', 'IF', 'DF', 'OF'];
             for (const f of flagNames) {
                 const isOn = flags[f];
-                flagsContainer.innerHTML += \`<div class="flag-box \${isOn ? 'flag-on' : 'flag-off'}">\${f}:\${isOn ? '1' : '0'}</div>\`;
+                let flagClass = isOn ? 'flag-on' : 'flag-off';
+                let flagStyle = '';
+                if (lastFlags && lastFlags[f] !== isOn) {
+                    flagStyle = 'box-shadow: 0 0 5px #d7ba7d; border: 1px solid #d7ba7d;';
+                }
+                flagsContainer.innerHTML += \`<div class="flag-box \${flagClass}" style="\${flagStyle}">\${f}:\${isOn ? '1' : '0'}</div>\`;
             }
             
             const box = document.getElementById('statusBox');
@@ -273,15 +293,32 @@ export class MemuDashboardProvider implements vscode.WebviewViewProvider {
             varsBody.innerHTML = '';
             if (msg.variables && msg.variables.length > 0) {
                 for (const v of msg.variables) {
-                    varsBody.innerHTML += \`<tr style="cursor:pointer" onclick="viewMemory('\${v.address}')" title="View memory at this variable">
+                    const intVal = parseInt(v.value, 16);
+                    let signed = intVal;
+                    const maxUnsigned = Math.pow(2, v.size * 8) - 1;
+                    const maxSigned = Math.pow(2, (v.size * 8) - 1) - 1;
+                    if (intVal > maxSigned) signed = intVal - (maxUnsigned + 1);
+                    const bin = intVal.toString(2).padStart(v.size * 8, '0');
+                    const tooltip = \`Unsigned: \${intVal} \\nSigned: \${signed} \\nBinary: \${bin}\`;
+                    
+                    let highlight = '';
+                    if (lastRegs && lastRegs[\`_var_\${v.name}\`] !== v.value) {
+                        highlight = 'color: #d7ba7d; text-shadow: 0 0 5px rgba(215,186,125,0.5);';
+                    }
+                    regs[\`_var_\${v.name}\`] = v.value; // Stash it in regs for next comparison
+
+                    varsBody.innerHTML += \`<tr style="cursor:pointer" onclick="viewMemory('\${v.address}')" title="\${tooltip}">
                         <td style="color:var(--vscode-symbolIcon-variableForeground)">\${v.name}</td>
                         <td style="color:var(--vscode-descriptionForeground)">\${v.address}</td>
-                        <td>\${v.value}</td>
+                        <td style="\${highlight}">\${v.value}</td>
                     </tr>\`;
                 }
             } else {
                 varsBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--vscode-descriptionForeground)">No variables</td></tr>';
             }
+            
+            lastRegs = {...regs};
+            lastFlags = {...flags};
         }
     </script>
 </body>
