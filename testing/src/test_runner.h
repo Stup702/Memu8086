@@ -8,7 +8,7 @@
 namespace emu_test {
 
 struct Expectation {
-    enum class Type { REGISTER, FLAG, MEMORY };
+    enum class Type { REGISTER, FLAG, MEMORY, ASM_ERROR };
     Type type;
     std::string name; // Register or flag name
     uint32_t address; // For memory

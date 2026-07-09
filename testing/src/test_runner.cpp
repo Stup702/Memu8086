@@ -19,6 +19,7 @@ std::vector<Expectation> TestRunner::parse_expectations(const std::string& sourc
     // Regex for: ; EXPECT AX=1234, ; EXPECT CF=1, ; EXPECT MEM[1234]=AB
     std::regex reg_expect(R"(;\s*EXPECT\s+([A-Z]+)\s*=\s*([0-9A-Fa-f]+h?))");
     std::regex mem_expect(R"(;\s*EXPECT\s+MEM\[([0-9A-Fa-f]+h?)\]\s*=\s*([0-9A-Fa-f]+h?))");
+    std::regex err_expect(R"(;\s*EXPECT\s+ASM_ERROR)");
 
     auto parse_hex = [](std::string val) -> uint32_t {
         if (val.empty()) return 0;
@@ -53,6 +54,13 @@ std::vector<Expectation> TestRunner::parse_expectations(const std::string& sourc
                 addr,
                 static_cast<uint16_t>(val)
             });
+        } else if (std::regex_search(line, match, err_expect)) {
+            expectations.push_back({
+                Expectation::Type::ASM_ERROR,
+                "",
+                0,
+                0
+            });
         }
     }
     return expectations;
@@ -81,8 +89,22 @@ TestResult TestRunner::run_file(const std::string& file_path) {
         return result;
     }
 
+    bool expect_asm_error = false;
+    for (const auto& exp : expectations) {
+        if (exp.type == Expectation::Type::ASM_ERROR) expect_asm_error = true;
+    }
+
     emu8086::assembler::Assembler asmb;
     auto asm_res = asmb.assemble(source, 0x0100);
+    
+    if (expect_asm_error) {
+        if (asm_res.success) {
+            result.success = false;
+            result.errors.push_back("Expected assembly to fail, but it succeeded.");
+        }
+        return result;
+    }
+
     if (!asm_res.success) {
         result.success = false;
         result.errors.push_back("Assembly failed:");
