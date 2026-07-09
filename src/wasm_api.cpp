@@ -48,9 +48,8 @@ public:
         const auto& asm_res = emulator.last_assembly();
         auto it = asm_res.offset_to_line.find(ip);
         if (it != asm_res.offset_to_line.end()) {
-            return it->second; // 1-indexed line number in C++ side usually? We'll check.
+            return it->second;
         }
-        // If not found (e.g. inside an instruction), find the closest previous line
         int closest_line = -1;
         uint16_t closest_offset = 0;
         for (const auto& pair : asm_res.offset_to_line) {
@@ -60,6 +59,14 @@ public:
             }
         }
         return closest_line;
+    }
+
+    std::string get_output() {
+        return emulator.consume_output();
+    }
+
+    void send_input(int char_code) {
+        emulator.send_key(static_cast<char>(char_code));
     }
 
     val get_registers() const {
@@ -110,6 +117,8 @@ EMSCRIPTEN_BINDINGS(memu8086_module) {
         .function("run", &WasmEmulator::run)
         .function("is_halted", &WasmEmulator::is_halted)
         .function("get_current_line", &WasmEmulator::get_current_line)
+        .function("get_output", &WasmEmulator::get_output)
+        .function("send_input", &WasmEmulator::send_input)
         .function("get_registers", &WasmEmulator::get_registers)
         .function("get_memory", &WasmEmulator::get_memory);
 }

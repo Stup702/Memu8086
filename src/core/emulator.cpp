@@ -362,13 +362,15 @@ EmulatorSnapshot Emulator::snapshot() const {
     return snap;
 }
 
+std::string Emulator::consume_output() {
+    std::lock_guard<std::mutex> lock(output_mutex_);
+    std::string res = std::move(output_buffer_);
+    output_buffer_.clear();
+    return res;
+}
+
 std::vector<std::string> Emulator::io_output() {
-    std::string local_buf;
-    {
-        std::lock_guard<std::mutex> lock(output_mutex_);
-        local_buf = std::move(output_buffer_);
-        output_buffer_.clear();
-    }
+    std::string local_buf = consume_output();
     
     std::vector<std::string> lines;
     if (local_buf.empty()) return lines;

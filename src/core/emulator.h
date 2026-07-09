@@ -76,6 +76,7 @@ public:
     const std::array<uint8_t, MEMORY_SIZE>& memory_view() const;
     void             write_memory(uint32_t addr, uint8_t val);
     std::vector<std::string> io_output();
+    std::string consume_output();
 
     void     request_memory_view(uint32_t addr);
     uint32_t consume_memory_view_request();

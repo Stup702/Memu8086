@@ -32,6 +32,26 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
+    const writeEmitter = new vscode.EventEmitter<string>();
+    const pty: vscode.Pseudoterminal = {
+        onDidWrite: writeEmitter.event,
+        open: () => {},
+        close: () => {},
+        handleInput: data => {
+            // User typed something into the terminal. Send it to WASM!
+            for (let i = 0; i < data.length; i++) {
+                provider.sendAction('console_input', data.charCodeAt(i));
+            }
+        }
+    };
+    const terminal = vscode.window.createTerminal({ name: 'MEMU8086 Console', pty });
+
+    // Provide the provider with the terminal write callback
+    provider.setTerminalCallback((text: string) => {
+        writeEmitter.fire(text);
+        terminal.show(true); // show but don't steal focus
+    });
+
     const sendAction = (action: string) => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
@@ -58,11 +78,16 @@ export function activate(context: vscode.ExtensionContext) {
 class MemuDashboardProvider implements vscode.WebviewViewProvider {
     private _view?: vscode.WebviewView;
     private highlightCallback?: (line: number) => void;
+    private terminalCallback?: (text: string) => void;
 
     constructor(private readonly _extensionUri: vscode.Uri) { }
 
     setHighlightCallback(cb: (line: number) => void) {
         this.highlightCallback = cb;
+    }
+    
+    setTerminalCallback(cb: (text: string) => void) {
+        this.terminalCallback = cb;
     }
 
     public resolveWebviewView(
@@ -81,11 +106,13 @@ class MemuDashboardProvider implements vscode.WebviewViewProvider {
         webviewView.webview.onDidReceiveMessage(data => {
             if (data.command === 'highlightLine' && this.highlightCallback) {
                 this.highlightCallback(data.line);
+            } else if (data.command === 'console_output' && this.terminalCallback) {
+                this.terminalCallback(data.text);
             }
         });
     }
 
-    public sendAction(action: string, source: string) {
+    public sendAction(action: string, source: any) {
         if (this._view) {
             this._view.webview.postMessage({ command: action, source: source });
         } else {
@@ -149,6 +176,11 @@ class MemuDashboardProvider implements vscode.WebviewViewProvider {
             if (!emu) return;
             const msg = event.data;
             
+            if (msg.command === 'console_input') {
+                emu.send_input(msg.source);
+                return;
+            }
+            
             if (msg.command === 'run' || msg.command === 'step') {
                 if (msg.source !== lastAsmSource || !isLoaded) {
                     emu.reset();
@@ -173,10 +205,17 @@ class MemuDashboardProvider implements vscode.WebviewViewProvider {
                     let safeCount = 0;
                     while (!emu.is_halted() && safeCount < 100000) {
                         emu.step();
+                        
+                        // Push any IO output during the run loop!
+                        const out = emu.get_output();
+                        if (out.length > 0) vscode.postMessage({ command: 'console_output', text: out });
+                        
                         safeCount++;
                     }
                 } else if (msg.command === 'step') {
                     emu.step();
+                    const out = emu.get_output();
+                    if (out.length > 0) vscode.postMessage({ command: 'console_output', text: out });
                 }
                 updateUI();
             } else if (msg.command === 'reset') {
