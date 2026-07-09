@@ -24,6 +24,16 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     context.subscriptions.push(
+        vscode.workspace.onDidSaveTextDocument(doc => {
+            if (doc.languageId === 'asm' || doc.fileName.endsWith('.asm')) {
+                if (vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'memu8086') {
+                    vscode.commands.executeCommand('workbench.action.debug.restart');
+                }
+            }
+        })
+    );
+
+    context.subscriptions.push(
         vscode.commands.registerCommand('memu8086.chippingIn', () => {
             const editor = vscode.window.activeTextEditor;
             if (!editor) {
@@ -72,6 +82,9 @@ export class MemuDashboardProvider implements vscode.WebviewViewProvider {
                 this._showStack = !this._showStack;
                 if (!this._inspectorPanel && this._showStack) {
                     this.openInspector(false);
+                } else if (!this._showStack && !this._showMemory && this._inspectorPanel) {
+                    this._inspectorPanel.dispose();
+                    this._inspectorPanel = undefined;
                 }
                 this.broadcastToggles();
             }
@@ -79,6 +92,9 @@ export class MemuDashboardProvider implements vscode.WebviewViewProvider {
                 this._showMemory = !this._showMemory;
                 if (!this._inspectorPanel && this._showMemory) {
                     this.openInspector(false);
+                } else if (!this._showStack && !this._showMemory && this._inspectorPanel) {
+                    this._inspectorPanel.dispose();
+                    this._inspectorPanel = undefined;
                 }
                 this.broadcastToggles();
             }

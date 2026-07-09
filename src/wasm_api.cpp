@@ -115,6 +115,15 @@ public:
         return emulator.consume_output();
     }
 
+    std::string get_errors() const {
+        std::string errs;
+        const auto& asm_res = emulator.last_assembly();
+        for (const auto& err : asm_res.errors) {
+            errs += "Line " + std::to_string(err.line) + ": " + err.message + "\n";
+        }
+        return errs;
+    }
+
     void send_input(int char_code) {
         emulator.send_key(static_cast<char>(char_code));
     }
@@ -186,6 +195,7 @@ EMSCRIPTEN_BINDINGS(memu8086_module) {
         .function("is_halted", &WasmEmulator::is_halted)
         .function("get_current_line", &WasmEmulator::get_current_line)
         .function("get_output", &WasmEmulator::get_output)
+        .function("get_errors", &WasmEmulator::get_errors)
         .function("send_input", &WasmEmulator::send_input)
         .function("get_registers", &WasmEmulator::get_registers)
         .function("get_memory", &WasmEmulator::get_memory)
