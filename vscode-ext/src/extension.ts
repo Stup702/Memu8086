@@ -42,6 +42,9 @@ export function activate(context: vscode.ExtensionContext) {
     };
 
     context.subscriptions.push(
+        vscode.commands.registerCommand('memu8086.chippingIn', () => {
+            vscode.commands.executeCommand('memu8086.dashboardView.focus');
+        }),
         vscode.commands.registerCommand('memu8086.run', () => sendAction('run')),
         vscode.commands.registerCommand('memu8086.step', () => sendAction('step')),
         vscode.commands.registerCommand('memu8086.reset', () => {

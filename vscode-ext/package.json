@@ -32,6 +32,10 @@
     },
     "commands": [
       {
+        "command": "memu8086.chippingIn",
+        "title": "MEMU8086: Chipping In"
+      },
+      {
         "command": "memu8086.run",
         "title": "MEMU8086: Run",
         "icon": "$(play)"
@@ -48,6 +52,24 @@
       }
     ],
     "menus": {
+      "commandPalette": [
+        {
+          "command": "memu8086.run",
+          "when": "false"
+        },
+        {
+          "command": "memu8086.step",
+          "when": "false"
+        },
+        {
+          "command": "memu8086.reset",
+          "when": "false"
+        },
+        {
+          "command": "memu8086.dashboardView.focus",
+          "when": "false"
+        }
+      ],
       "editor/title": [
         {
           "command": "memu8086.run",
