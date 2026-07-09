@@ -29,14 +29,64 @@ public:
     }
 
     void run() {
-        // For WASM we probably just want to run until halted or loop,
-        // but since `Emulator::start()` uses std::thread which may not work in WASM without pthread,
-        // we might just step in a loop.
+        if (emulator.state() == core::EmulatorState::HALTED || 
+            emulator.state() == core::EmulatorState::ERROR) {
+            return;
+        }
+        
+        // Execute at least one instruction so we don't immediately get stuck on the current breakpoint
+        emulator.step();
+
         while (emulator.state() != core::EmulatorState::HALTED && 
-               emulator.state() != core::EmulatorState::ERROR &&
-               emulator.state() != core::EmulatorState::IDLE) {
+               emulator.state() != core::EmulatorState::ERROR) {
+                   
+            if (emulator.has_breakpoint(emulator.snapshot().regs.IP)) {
+                break;
+            }
             emulator.step();
         }
+    }
+    
+    val set_breakpoints(val lines) {
+        emulator.clear_breakpoints();
+        val verified = val::array();
+        const auto& asm_res = emulator.last_assembly();
+        
+        int length = lines["length"].as<int>();
+        int v_idx = 0;
+        for (int i = 0; i < length; ++i) {
+            int line = lines[i].as<int>();
+            auto it = asm_res.line_to_offset.find(line);
+            if (it != asm_res.line_to_offset.end()) {
+                emulator.add_breakpoint(it->second);
+                val bp = val::object();
+                bp.set("line", line);
+                bp.set("verified", true);
+                verified.set(v_idx++, bp);
+            } else {
+                int closest_line = -1;
+                for (const auto& pair : asm_res.line_to_offset) {
+                    if (pair.first >= line) {
+                        if (closest_line == -1 || pair.first < closest_line) {
+                            closest_line = pair.first;
+                        }
+                    }
+                }
+                if (closest_line != -1) {
+                    emulator.add_breakpoint(asm_res.line_to_offset.at(closest_line));
+                    val bp = val::object();
+                    bp.set("line", closest_line);
+                    bp.set("verified", true);
+                    verified.set(v_idx++, bp);
+                } else {
+                    val bp = val::object();
+                    bp.set("line", line);
+                    bp.set("verified", false);
+                    verified.set(v_idx++, bp);
+                }
+            }
+        }
+        return verified;
     }
     
     bool is_halted() const {
@@ -106,6 +156,24 @@ public:
         if (start + size > mem.size()) size = mem.size() - start;
         return val(typed_memory_view(size, mem.data() + start));
     }
+
+    val get_symbols() const {
+        val syms = val::array();
+        const auto& asm_res = emulator.last_assembly();
+        int idx = 0;
+        for (const auto& pair : asm_res.symbols) {
+            if (pair.first == "@data") continue; // Hide duplicate alias from UI
+            val sym = val::object();
+            sym.set("name", pair.first);
+            sym.set("offset", pair.second);
+            int size = 1;
+            auto sz_it = asm_res.sym_sizes.find(pair.first);
+            if (sz_it != asm_res.sym_sizes.end()) size = sz_it->second;
+            sym.set("size", size);
+            syms.set(idx++, sym);
+        }
+        return syms;
+    }
 };
 
 EMSCRIPTEN_BINDINGS(memu8086_module) {
@@ -120,5 +188,7 @@ EMSCRIPTEN_BINDINGS(memu8086_module) {
         .function("get_output", &WasmEmulator::get_output)
         .function("send_input", &WasmEmulator::send_input)
         .function("get_registers", &WasmEmulator::get_registers)
-        .function("get_memory", &WasmEmulator::get_memory);
+        .function("get_memory", &WasmEmulator::get_memory)
+        .function("get_symbols", &WasmEmulator::get_symbols)
+        .function("set_breakpoints", &WasmEmulator::set_breakpoints);
 }

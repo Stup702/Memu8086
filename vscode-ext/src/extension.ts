@@ -1,8 +1,7 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
 
 export function activate(context: vscode.ExtensionContext) {
-    console.log('MEMU8086 extension is now active!');
+    console.log('MEMU8086 extension is now active in DAP mode!');
 
     const provider = new MemuDashboardProvider(context.extensionUri);
     
@@ -12,231 +11,245 @@ export function activate(context: vscode.ExtensionContext) {
         })
     );
 
-    const highlightDecoration = vscode.window.createTextEditorDecorationType({
-        backgroundColor: 'rgba(255, 255, 0, 0.3)',
-        isWholeLine: true
-    });
-
-    // Provide the provider with the highlight function
-    provider.setHighlightCallback((line: number) => {
-        const editor = vscode.window.activeTextEditor;
-        if (editor && line >= 1) { 
-            const vsCodeLine = line - 1;
-            if (vsCodeLine < editor.document.lineCount) {
-                const range = editor.document.lineAt(vsCodeLine).range;
-                editor.setDecorations(highlightDecoration, [range]);
-                editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+    context.subscriptions.push(
+        vscode.debug.onDidReceiveDebugSessionCustomEvent(e => {
+            if (e.event === 'updateDashboard') {
+                provider.updateData(e.body.regs, e.body.state, e.body.line, e.body.stackData, e.body.stackAddr, e.body.memoryData, e.body.memoryAddr, e.body.variables);
+                // Force focus back to our dashboard when VS Code tries to steal it for the native debug view
+                setTimeout(() => {
+                    vscode.commands.executeCommand('memu8086.dashboardView.focus');
+                }, 100);
             }
-        } else if (editor) {
-            editor.setDecorations(highlightDecoration, []);
-        }
-    });
-
-    const writeEmitter = new vscode.EventEmitter<string>();
-    const pty: vscode.Pseudoterminal = {
-        onDidWrite: writeEmitter.event,
-        open: () => {},
-        close: () => {},
-        handleInput: data => {
-            // User typed something into the terminal. Send it to WASM!
-            for (let i = 0; i < data.length; i++) {
-                provider.sendAction('console_input', data.charCodeAt(i));
-            }
-        }
-    };
-    const terminal = vscode.window.createTerminal({ name: 'MEMU8086 Console', pty });
-
-    // Provide the provider with the terminal write callback
-    provider.setTerminalCallback((text: string) => {
-        writeEmitter.fire(text);
-        terminal.show(true); // show but don't steal focus
-    });
-
-    const sendAction = (action: string) => {
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-            vscode.window.showErrorMessage('No active editor found!');
-            return;
-        }
-        provider.sendAction(action, editor.document.getText());
-    };
+        })
+    );
 
     context.subscriptions.push(
         vscode.commands.registerCommand('memu8086.chippingIn', () => {
-            vscode.commands.executeCommand('memu8086.dashboardView.focus');
-        }),
-        vscode.commands.registerCommand('memu8086.run', () => sendAction('run')),
-        vscode.commands.registerCommand('memu8086.step', () => sendAction('step')),
-        vscode.commands.registerCommand('memu8086.reset', () => {
-            provider.sendAction('reset', '');
             const editor = vscode.window.activeTextEditor;
-            if (editor) editor.setDecorations(highlightDecoration, []);
+            if (!editor) {
+                vscode.window.showErrorMessage('No active editor found to debug!');
+                return;
+            }
+
+            if (vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'memu8086') {
+                vscode.window.showWarningMessage('A Memu8086 debug session is already running!');
+                vscode.commands.executeCommand('memu8086.dashboardView.focus');
+                return;
+            }
+
+            vscode.commands.executeCommand('memu8086.dashboardView.focus');
+            
+            provider.openInspector();
+
+            vscode.debug.startDebugging(undefined, {
+                type: 'memu8086',
+                name: 'Debug DOS',
+                request: 'launch',
+                program: editor.document.uri.fsPath,
+                stopOnEntry: true
+            });
         })
     );
 }
 
-class MemuDashboardProvider implements vscode.WebviewViewProvider {
+export class MemuDashboardProvider implements vscode.WebviewViewProvider {
     private _view?: vscode.WebviewView;
-    private highlightCallback?: (line: number) => void;
-    private terminalCallback?: (text: string) => void;
+    private _inspectorPanel?: vscode.WebviewPanel;
+    private _lastData?: any;
+    
+    private _showStack: boolean = true;
+    private _showMemory: boolean = true;
 
     constructor(private readonly _extensionUri: vscode.Uri) { }
 
-    setHighlightCallback(cb: (line: number) => void) {
-        this.highlightCallback = cb;
-    }
-    
-    setTerminalCallback(cb: (text: string) => void) {
-        this.terminalCallback = cb;
-    }
-
-    public resolveWebviewView(
-        webviewView: vscode.WebviewView,
-        context: vscode.WebviewViewResolveContext,
-        _token: vscode.CancellationToken,
-    ) {
+    resolveWebviewView(webviewView: vscode.WebviewView) {
         this._view = webviewView;
         webviewView.webview.options = { enableScripts: true };
-
-        const wasmJsUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'wasm', 'build', 'memu8086_core.js'));
-        const wasmBinUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'wasm', 'build', 'memu8086_core.wasm'));
-
-        webviewView.webview.html = this._getHtmlForWebview(wasmJsUri, wasmBinUri);
-
-        webviewView.webview.onDidReceiveMessage(data => {
-            if (data.command === 'highlightLine' && this.highlightCallback) {
-                this.highlightCallback(data.line);
-            } else if (data.command === 'console_output' && this.terminalCallback) {
-                this.terminalCallback(data.text);
+        webviewView.webview.html = this._getHtml();
+        
+        webviewView.webview.onDidReceiveMessage(async msg => {
+            if (msg.command === 'toggleStack') {
+                this._showStack = !this._showStack;
+                this.broadcastToggles();
+            }
+            if (msg.command === 'toggleMemory') {
+                this._showMemory = !this._showMemory;
+                this.broadcastToggles();
+            }
+            if (msg.command === 'viewMemory') {
+                if (vscode.debug.activeDebugSession) {
+                    vscode.debug.activeDebugSession.customRequest('setDashboardMemory', { address: msg.address });
+                }
+                this._showMemory = true;
+                this.broadcastToggles();
+                this.openInspector(false);
             }
         });
     }
 
-    public sendAction(action: string, source: any) {
+    private broadcastToggles() {
+        const payload = {
+            command: 'updateToggles',
+            showStack: this._showStack,
+            showMemory: this._showMemory
+        };
         if (this._view) {
-            this._view.webview.postMessage({ command: action, source: source });
-        } else {
-            vscode.commands.executeCommand('memu8086.dashboardView.focus').then(() => {
-                setTimeout(() => {
-                    this._view?.webview.postMessage({ command: action, source: source });
-                }, 500);
-            });
+            this._view.webview.postMessage(payload);
+        }
+        if (this._inspectorPanel) {
+            this._inspectorPanel.webview.postMessage(payload);
         }
     }
 
-    private _getHtmlForWebview(wasmJsUri: vscode.Uri, wasmBinUri: vscode.Uri) {
+    public updateData(regs: any, state: string, line: number, stackData: string, stackAddr: number, memoryData: string, memoryAddr: number, variables: any[]) {
+        this._lastData = { regs, state, line, stackData, stackAddr, memoryData, memoryAddr, variables };
+        if (this._view) {
+            this._view.webview.postMessage({ command: 'updateUI', ...this._lastData });
+        }
+        if (this._inspectorPanel) {
+            this._inspectorPanel.webview.postMessage({ command: 'updateUI', ...this._lastData });
+        }
+    }
+
+    public openInspector(takeFocus: boolean = true) {
+        if (!this._inspectorPanel) {
+            this._inspectorPanel = vscode.window.createWebviewPanel(
+                'memu8086.inspector',
+                'Memory & Stack',
+                vscode.ViewColumn.Beside,
+                { enableScripts: true }
+            );
+            this._inspectorPanel.onDidDispose(() => {
+                this._inspectorPanel = undefined;
+            });
+            this._inspectorPanel.webview.html = this._getInspectorHtml();
+        } else if (takeFocus) {
+            this._inspectorPanel.reveal(vscode.ViewColumn.Beside, !takeFocus);
+        }
+        
+        if (this._lastData) {
+            this._inspectorPanel.webview.postMessage({ command: 'updateUI', ...this._lastData });
+        }
+    }
+
+    private _getHtml() {
         return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <style>
         body { font-family: sans-serif; padding: 10px; color: var(--vscode-editor-foreground); }
-        h3 { margin: 10px 0 5px 0; color: var(--vscode-textLink-foreground); font-size: 12px; text-transform: uppercase;}
+        h3 { margin: 15px 0 5px 0; color: var(--vscode-textLink-foreground); font-size: 12px; text-transform: uppercase;}
         
-        .regs-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-bottom: 15px; }
+        .regs-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-bottom: 5px; }
         .reg-box { background: var(--vscode-editor-inactiveSelectionBackground); padding: 4px; border-radius: 3px; font-family: monospace; font-size: 13px;}
         .reg-name { font-weight: bold; color: #4fc1ff; display: inline-block; width: 25px;}
+        .section-label { font-size: 10px; color: var(--vscode-descriptionForeground); margin-bottom: 3px; margin-top: 10px; }
         
-        .flags-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+        .flags-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 15px;}
         .flag-box { padding: 3px; border-radius: 3px; font-family: monospace; font-size: 11px; font-weight: bold; text-align: center; }
         .flag-on { background: #1f6b3e; color: #fff; }
         .flag-off { background: var(--vscode-editor-inactiveSelectionBackground); color: var(--vscode-descriptionForeground); }
+        h3 { margin: 0 0 10px 0; color: var(--vscode-textLink-foreground); font-size: 14px; text-transform: uppercase;}
         
-        .status-bar { margin-bottom: 15px; padding: 6px; border-radius: 3px; font-weight: bold; font-size: 11px; text-align: center;}
-        .status-idle { background: var(--vscode-editor-inactiveSelectionBackground); }
-        .status-running { background: #0e639c; color: white;}
-        .status-halted { background: #8a2b2b; color: white;}
+        .btn-row { display: flex; gap: 10px; margin-bottom: 20px; }
+        .btn { 
+            flex: 1; padding: 8px; border: none; cursor: pointer; color: white;
+            border-radius: 4px; font-weight: bold; text-align: center;
+        }
+        .btn-active { background-color: var(--vscode-button-background); }
+        .btn-inactive { background-color: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
+        .btn:hover { opacity: 0.8; }
+        
+        .section-label { font-size: 11px; text-transform: uppercase; margin-bottom: 4px; color: var(--vscode-descriptionForeground); margin-top: 10px;}
+        .regs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+        .reg-box { background: var(--vscode-editor-inactiveSelectionBackground); padding: 4px; border-radius: 3px; font-family: monospace; font-size: 13px; display: flex; justify-content: space-between; }
+        .reg-name { color: var(--vscode-symbolIcon-variableForeground); font-weight: bold; }
+        
+        .flags-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+        .flag-box { padding: 4px; text-align: center; font-family: monospace; font-size: 12px; border-radius: 3px; }
+        .flag-on { background: var(--vscode-testing-iconPassed); color: var(--vscode-editor-background); }
+        .flag-off { background: var(--vscode-testing-iconFailed); color: var(--vscode-editor-background); opacity: 0.6; }
+        
+        .status-bar { padding: 8px; font-weight: bold; text-align: center; border-radius: 4px; margin-bottom: 15px;}
+        .status-running { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
+        .status-halted { background: var(--vscode-errorForeground); color: var(--vscode-editor-background); }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 5px; font-family: monospace; font-size: 13px; }
+        th, td { text-align: left; padding: 4px; border-bottom: 1px solid var(--vscode-editorGroup-border); }
+        th { color: var(--vscode-descriptionForeground); font-size: 11px; text-transform: uppercase; }
+        
     </style>
 </head>
 <body>
-    <div class="status-bar status-idle" id="statusBox">State: IDLE</div>
-    <h3>Registers</h3>
-    <div class="regs-grid" id="regsContainer"><div class="reg-box">Loading...</div></div>
-    <h3>Flags</h3>
+    <h3>MEMU8086: DASHBOARD</h3>
+    <div id="statusBox" class="status-bar status-running">State: WAITING</div>
+    
+    <div class="btn-row">
+        <button id="btnToggleStack" class="btn ${this._showStack ? 'btn-active' : 'btn-inactive'}" onclick="vscode.postMessage({command:'toggleStack'})">
+            Toggle Stack
+        </button>
+        <button id="btnToggleMemory" class="btn ${this._showMemory ? 'btn-active' : 'btn-inactive'}" onclick="vscode.postMessage({command:'toggleMemory'})">
+            Toggle Memory
+        </button>
+    </div>
+
+    <h3>REGISTERS</h3>
+    <div id="regsContainer"></div>
+
+    <h3 style="margin-top:20px;">FLAGS</h3>
     <div class="flags-grid" id="flagsContainer"></div>
 
-    <script src="${wasmJsUri.toString()}"></script>
+    <h3 style="margin-top:20px;">VARIABLES</h3>
+    <table>
+        <thead><tr><th>Name</th><th>Addr</th><th>Value</th></tr></thead>
+        <tbody id="varsBody"></tbody>
+    </table>
+
     <script>
         const vscode = acquireVsCodeApi();
-        let emu;
-        let lastAsmSource = "";
-        let isLoaded = false;
-        
-        createMemu8086({
-            locateFile: function(path) {
-                if (path.endsWith('.wasm')) return '${wasmBinUri.toString()}';
-                return path;
-            }
-        }).then(function(Module) {
-            emu = new Module.WasmEmulator();
-            updateUI();
-        });
+
+        function viewMemory(address) {
+            vscode.postMessage({ command: 'viewMemory', address: address });
+        }
 
         window.addEventListener('message', event => {
-            if (!emu) return;
             const msg = event.data;
-            
-            if (msg.command === 'console_input') {
-                emu.send_input(msg.source);
-                return;
-            }
-            
-            if (msg.command === 'run' || msg.command === 'step') {
-                if (msg.source !== lastAsmSource || !isLoaded) {
-                    emu.reset();
-                    const success = emu.assemble(msg.source);
-                    if (!success) {
-                        setStatus("ERROR: Assembly Failed", "status-halted");
-                        vscode.postMessage({ command: 'highlightLine', line: -1 });
-                        return;
-                    }
-                    lastAsmSource = msg.source;
-                    isLoaded = true;
-                    // If we just loaded the code, we highlight line 1 but DO NOT execute it yet!
-                    // This creates the proper "Start Debugging" experience.
-                    updateUI();
-                    
-                    // If the command was run, we still want to run it completely.
-                    if (msg.command === 'step') return; 
-                }
-                
-                if (msg.command === 'run') {
-                    // Step in a loop until halted or error to avoid freezing the tab completely
-                    let safeCount = 0;
-                    while (!emu.is_halted() && safeCount < 100000) {
-                        emu.step();
-                        
-                        // Push any IO output during the run loop!
-                        const out = emu.get_output();
-                        if (out.length > 0) vscode.postMessage({ command: 'console_output', text: out });
-                        
-                        safeCount++;
-                    }
-                } else if (msg.command === 'step') {
-                    emu.step();
-                    const out = emu.get_output();
-                    if (out.length > 0) vscode.postMessage({ command: 'console_output', text: out });
-                }
-                updateUI();
-            } else if (msg.command === 'reset') {
-                emu.reset();
-                lastAsmSource = "";
-                isLoaded = false;
-                vscode.postMessage({ command: 'highlightLine', line: -1 });
-                updateUI();
+            if (msg.command === 'updateUI') {
+                updateUI(msg);
+            } else if (msg.command === 'updateToggles') {
+                const btnStack = document.getElementById('btnToggleStack');
+                if (btnStack) btnStack.className = msg.showStack ? 'btn btn-active' : 'btn btn-inactive';
+                const btnMem = document.getElementById('btnToggleMemory');
+                if (btnMem) btnMem.className = msg.showMemory ? 'btn btn-active' : 'btn btn-inactive';
             }
         });
 
-        function updateUI() {
-            if (!emu) return;
-            const regs = emu.get_registers();
-            
+        function updateUI(msg) {
+            const regs = msg.regs;
             const container = document.getElementById('regsContainer');
             container.innerHTML = '';
-            const regNames = ['AX', 'BX', 'CX', 'DX', 'SI', 'DI', 'SP', 'BP', 'IP', 'CS', 'DS', 'ES', 'SS'];
-            for (const r of regNames) {
-                const val = regs[r].toString(16).padStart(4, '0').toUpperCase();
-                container.innerHTML += \`<div class="reg-box"><span class="reg-name">\${r}</span> 0x\${val}</div>\`;
+            
+            const groups = [
+                { name: "General", keys: ['AX', 'BX', 'CX', 'DX'] },
+                { name: "Pointer & Index", keys: ['SP', 'BP', 'SI', 'DI', 'IP'] },
+                { name: "Segment", keys: ['CS', 'DS', 'ES', 'SS'] }
+            ];
+            
+            for (const g of groups) {
+                container.innerHTML += \`<div class="section-label">\${g.name}</div>\`;
+                let grid = '<div class="regs-grid">';
+                for (const r of g.keys) {
+                    const val = regs[r].toString(16).padStart(4, '0').toUpperCase();
+                    if (g.name === "Segment") {
+                        const addr = regs[r] * 16;
+                        grid += \`<div class="reg-box" style="cursor:pointer" onclick="viewMemory(\${addr})" title="View memory at this segment"><span class="reg-name">\${r}</span> 0x\${val}</div>\`;
+                    } else {
+                        grid += \`<div class="reg-box"><span class="reg-name">\${r}</span> 0x\${val}</div>\`;
+                    }
+                }
+                grid += '</div>';
+                container.innerHTML += grid;
             }
             
             const flagsContainer = document.getElementById('flagsContainer');
@@ -248,23 +261,113 @@ class MemuDashboardProvider implements vscode.WebviewViewProvider {
                 flagsContainer.innerHTML += \`<div class="flag-box \${isOn ? 'flag-on' : 'flag-off'}">\${f}:\${isOn ? '1' : '0'}</div>\`;
             }
             
-            if (emu.is_halted()) {
-                setStatus("HALTED", "status-halted");
-                vscode.postMessage({ command: 'highlightLine', line: -1 });
+            const box = document.getElementById('statusBox');
+            box.innerText = "State: " + msg.state;
+            if (msg.state === "HALTED" || msg.state === "ERROR") {
+                box.className = "status-bar status-halted";
             } else {
-                setStatus(isLoaded ? "READY" : "IDLE", isLoaded ? "status-running" : "status-idle");
-                vscode.postMessage({ command: 'highlightLine', line: isLoaded ? emu.get_current_line() : -1 });
+                box.className = "status-bar status-running";
+            }
+            
+            const varsBody = document.getElementById('varsBody');
+            varsBody.innerHTML = '';
+            if (msg.variables && msg.variables.length > 0) {
+                for (const v of msg.variables) {
+                    varsBody.innerHTML += \`<tr style="cursor:pointer" onclick="viewMemory('\${v.address}')" title="View memory at this variable">
+                        <td style="color:var(--vscode-symbolIcon-variableForeground)">\${v.name}</td>
+                        <td style="color:var(--vscode-descriptionForeground)">\${v.address}</td>
+                        <td>\${v.value}</td>
+                    </tr>\`;
+                }
+            } else {
+                varsBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--vscode-descriptionForeground)">No variables</td></tr>';
             }
         }
+    </script>
+</body>
+</html>`;
+    }
+
+
+
+
+    private _getInspectorHtml() {
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; color: var(--vscode-editor-foreground); display: flex; flex-direction: column; background: var(--vscode-editor-background); }
+        h3 { margin: 0; padding: 8px; background: var(--vscode-editorGroupHeader-tabsBackground); border-bottom: 1px solid var(--vscode-editorGroup-border); color: var(--vscode-tab-activeForeground); font-size: 11px; text-transform: uppercase; font-weight: normal; letter-spacing: 1px; text-align: center; }
         
-        function setStatus(text, cssClass) {
-            const box = document.getElementById('statusBox');
-            box.innerText = "State: " + text;
-            box.className = "status-bar " + cssClass;
+        .panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; border-bottom: 2px solid var(--vscode-editorGroup-border); }
+        .panel-content { flex: 1; overflow-y: auto; padding: 10px; }
+        
+        .mem-grid { display: grid; gap: 4px; font-family: monospace; font-size: 13px;}
+        .mem-cell { background: var(--vscode-editor-inactiveSelectionBackground); padding: 4px; text-align: center; border-radius: 3px; }
+        .mem-addr { background: transparent; color: var(--vscode-symbolIcon-variableForeground); font-weight: bold; text-align: right; padding-right: 10px;}
+        
+    </style>
+</head>
+<body>
+    <div class="panel" id="stackPanel" style="display: ${this._showStack ? 'flex' : 'none'}">
+        <h3>STACK</h3>
+        <div class="panel-content">
+            <div class="mem-grid" id="stackGrid" style="grid-template-columns: 80px repeat(8, 1fr);">Waiting for Debugger...</div>
+        </div>
+    </div>
+
+    <div class="panel" id="memoryPanel" style="display: ${this._showMemory ? 'flex' : 'none'}">
+        <h3>MEMORY</h3>
+        <div class="panel-content">
+            <div class="mem-grid" id="memoryGrid" style="grid-template-columns: 80px repeat(16, 1fr);">Waiting for Debugger...</div>
+        </div>
+    </div>
+
+    <div id="emptyMsg" style="display: ${(!this._showStack && !this._showMemory) ? 'block' : 'none'}; padding: 20px; text-align: center; color: var(--vscode-descriptionForeground);">
+        Please toggle Stack or Memory from the Dashboard to view.
+    </div>
+
+    <script>
+        window.addEventListener('message', event => {
+            const msg = event.data;
+            if (msg.command === 'updateUI') {
+                if (msg.stackData) renderHex('stackGrid', msg.stackData, msg.stackAddr, 8);
+                if (msg.memoryData) renderHex('memoryGrid', msg.memoryData, msg.memoryAddr, 16);
+            } else if (msg.command === 'updateToggles') {
+                document.getElementById('stackPanel').style.display = msg.showStack ? 'flex' : 'none';
+                document.getElementById('memoryPanel').style.display = msg.showMemory ? 'flex' : 'none';
+                document.getElementById('emptyMsg').style.display = (!msg.showStack && !msg.showMemory) ? 'block' : 'none';
+            }
+        });
+
+        function renderHex(gridId, hexStr, startAddr, cols) {
+            const grid = document.getElementById(gridId);
+            if (!grid) return;
+            grid.innerHTML = '';
+            
+            const bytes = [];
+            for (let i = 0; i < hexStr.length; i += 2) {
+                bytes.push(hexStr.substr(i, 2).toUpperCase());
+            }
+            
+            for (let i = 0; i < bytes.length; i += cols) {
+                const addr = (startAddr + i).toString(16).padStart(5, '0').toUpperCase();
+                grid.innerHTML += \`<div class="mem-cell mem-addr">0x\${addr}</div>\`;
+                
+                for (let j = 0; j < cols; j++) {
+                    if (i + j < bytes.length) {
+                        grid.innerHTML += \`<div class="mem-cell">\${bytes[i + j]}</div>\`;
+                    } else {
+                        grid.innerHTML += \`<div class="mem-cell" style="opacity: 0.2">--</div>\`;
+                    }
+                }
+            }
         }
     </script>
 </body>
 </html>`;
     }
 }
+
 export function deactivate() {}
