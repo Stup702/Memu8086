@@ -814,7 +814,7 @@ AssemblyResult Assembler::assemble(const std::string& source, uint16_t origin) {
     for (int p = 0; p < passes; p++) {
         AssemblerState state;
         uint16_t code_LC = origin;
-        uint16_t data_LC = origin + prev_code_size;
+        uint16_t data_LC = static_cast<uint16_t>(origin + prev_code_size);
 
         bool is_pass2 = (p == passes - 1);
         if (is_pass2) {
@@ -845,7 +845,7 @@ AssemblyResult Assembler::assemble(const std::string& source, uint16_t origin) {
             if (m == ".STACK") {
                 if (!line.operands.empty()) {
                     bool ok = true;
-                    state.stack_size = evaluate_expression(line.operands[0], res, ok);
+                    state.stack_size = static_cast<uint16_t>(evaluate_expression(line.operands[0], res, ok));
                 }
                 continue;
             }
@@ -857,14 +857,14 @@ AssemblyResult Assembler::assemble(const std::string& source, uint16_t origin) {
 
             if (m == "ORG") {
                 bool ok = true;
-                uint16_t new_LC = evaluate_expression(line.operands[0], res, ok);
+                uint16_t new_LC = static_cast<uint16_t>(evaluate_expression(line.operands[0], res, ok));
                 if (is_pass2 && new_LC > LC) current_bytes.resize(current_bytes.size() + (new_LC - LC), 0);
                 LC = new_LC;
                 continue;
             } else if (m == "EQU") {
                 if (!is_pass2) {
                     bool ok = true;
-                    res.symbols[line.label] = evaluate_expression(line.operands[0], res, ok);
+                    res.symbols[line.label] = static_cast<uint16_t>(evaluate_expression(line.operands[0], res, ok));
                 }
                 continue;
             }
@@ -878,7 +878,7 @@ AssemblyResult Assembler::assemble(const std::string& source, uint16_t origin) {
             encode_instruction(line.label, m, line.operands, res, instr_bytes, LC, line.line_num, is_pass2);
             
             if (is_pass2) current_bytes.insert(current_bytes.end(), instr_bytes.begin(), instr_bytes.end());
-            LC += instr_bytes.size();
+            LC += static_cast<uint16_t>(instr_bytes.size());
         }
         
         prev_code_size = code_LC - origin;
@@ -887,7 +887,7 @@ AssemblyResult Assembler::assemble(const std::string& source, uint16_t origin) {
             res.machine_code = code_bytes;
             res.machine_code.insert(res.machine_code.end(), data_bytes.begin(), data_bytes.end());
             res.code_segment_offset = origin;
-            res.data_segment_offset = origin + prev_code_size;
+            res.data_segment_offset = static_cast<uint16_t>(origin + prev_code_size);
         }
     }
     return res;

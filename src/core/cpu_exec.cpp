@@ -589,8 +589,8 @@ ExecResult Executor::step() {
                 }
                 case 6: { // DIV
                     if (v == 0) return ExecResult::DIVISION_BY_ZERO;
-                    if (word) { uint32_t num = (static_cast<uint32_t>(cpu.regs.DX) << 16) | cpu.regs.AX; if (num / v > 0xFFFF) return ExecResult::DIVISION_BY_ZERO; cpu.regs.AX = num / v; cpu.regs.DX = num % v; }
-                    else { uint16_t num = cpu.regs.AX; if (num / v > 0xFF) return ExecResult::DIVISION_BY_ZERO; cpu.regs.AL() = num / v; cpu.regs.AH() = num % v; } break;
+                    if (word) { uint32_t num = (static_cast<uint32_t>(cpu.regs.DX) << 16) | cpu.regs.AX; if (num / v > 0xFFFF) return ExecResult::DIVISION_BY_ZERO; cpu.regs.AX = static_cast<uint16_t>(num / v); cpu.regs.DX = static_cast<uint16_t>(num % v); }
+                    else { uint16_t num = cpu.regs.AX; if (num / v > 0xFF) return ExecResult::DIVISION_BY_ZERO; cpu.regs.AL() = static_cast<uint8_t>(num / v); cpu.regs.AH() = static_cast<uint8_t>(num % v); } break;
                 }
                 case 7: { // IDIV
                     if (v == 0) return ExecResult::DIVISION_BY_ZERO;

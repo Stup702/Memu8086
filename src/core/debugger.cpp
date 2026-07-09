@@ -97,8 +97,8 @@ void ConsoleState::resize(int new_cols, int new_rows) {
 
 // --- Debugger Implementation ---
 
-Debugger::Debugger(CPU& cpu, Memory& mem, ConsoleState& console)
-    : cpu(cpu), mem(mem), console(console) {
+Debugger::Debugger(CPU& cpu_ref, Memory& mem_ref, ConsoleState& console_ref)
+    : cpu(cpu_ref), mem(mem_ref), console(console_ref) {
     
     emulator.set_speed_hz(static_cast<uint32_t>(speed_ips_));
     sync_state();

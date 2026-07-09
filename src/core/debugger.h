@@ -57,7 +57,7 @@ struct ConsoleState {
 
 class Debugger {
 public:
-    Debugger(CPU& cpu, Memory& mem, ConsoleState& console);
+    Debugger(CPU& cpu_ref, Memory& mem_ref, ConsoleState& console_ref);
     
     // Execution control
     void step();
