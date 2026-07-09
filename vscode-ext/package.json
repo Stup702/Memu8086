@@ -12,6 +12,21 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "languages": [
+      {
+        "id": "asm",
+        "aliases": ["Assembly", "asm", "x86"],
+        "extensions": [".asm", ".inc", ".s"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "asm",
+        "scopeName": "source.asm",
+        "path": "./syntaxes/asm.tmLanguage.json"
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {
