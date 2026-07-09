@@ -134,6 +134,10 @@ export class MemuDashboardProvider implements vscode.WebviewViewProvider {
     }
 
     public openInspector(takeFocus: boolean = true) {
+        if (!this._showStack && !this._showMemory) {
+            return;
+        }
+        
         if (!this._inspectorPanel) {
             this._inspectorPanel = vscode.window.createWebviewPanel(
                 'memu8086.inspector',
@@ -143,6 +147,9 @@ export class MemuDashboardProvider implements vscode.WebviewViewProvider {
             );
             this._inspectorPanel.onDidDispose(() => {
                 this._inspectorPanel = undefined;
+                this._showStack = false;
+                this._showMemory = false;
+                this.broadcastToggles();
             });
             this._inspectorPanel.webview.html = this._getInspectorHtml();
         } else if (takeFocus) {

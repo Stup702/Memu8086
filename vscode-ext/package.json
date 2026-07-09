@@ -91,7 +91,7 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
+    "compile": "tsc -p ./ && cp ./wasm/build/memu8086_core.js ./out/ && cp ./wasm/build/memu8086_core.wasm ./out/",
     "watch": "tsc -watch -p ./"
   },
   "devDependencies": {

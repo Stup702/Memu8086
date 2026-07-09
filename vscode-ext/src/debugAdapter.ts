@@ -67,6 +67,7 @@ export class MemuDebugSession extends LoggingDebugSession {
             if (!success) {
                 const errs = this._emu.get_errors();
                 this.sendEvent(new OutputEvent(`Assembly failed!\n${errs}`, 'stderr'));
+                this.sendResponse(response);
                 this.sendEvent(new TerminatedEvent());
                 return;
             }
@@ -83,6 +84,7 @@ export class MemuDebugSession extends LoggingDebugSession {
 
         } catch (e: any) {
             this.sendEvent(new OutputEvent(`Failed to load WASM emulator: ${e.message}\n`, 'stderr'));
+            this.sendResponse(response);
             this.sendEvent(new TerminatedEvent());
         }
     }
