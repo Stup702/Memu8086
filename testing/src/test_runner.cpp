@@ -118,6 +118,11 @@ TestResult TestRunner::run_file(const std::string& file_path) {
     const uint32_t MAX_CYCLES = 1000000;
     uint32_t cycles = 0;
 
+    for (size_t i = 0; i < asm_res.code_bytes.size(); ++i) {
+        fmt::print("{:02X} ", asm_res.code_bytes[i]);
+    }
+    fmt::print("\n");
+
     while (emu.state() != emu8086::core::EmulatorState::HALTED && 
            emu.state() != emu8086::core::EmulatorState::ERROR && 
            cycles < MAX_CYCLES) {

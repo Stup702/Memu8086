@@ -816,10 +816,17 @@ AssemblyResult Assembler::assemble(const std::string& source, uint16_t origin) {
     int prev_code_size = 0;
 
     // 3 passes: allows resolving forward jumps shrinking from near (3b) to short (2b) cleanly.
+    for (const auto& line : lines) {
+        if (line.mnemonic == ".MODEL" && !line.operands.empty()) {
+            if (line.operands[0] == "SMALL") res.has_model_directive = true;
+            else if (line.operands[0] == "TINY") res.has_model_directive = false;
+        }
+    }
+
     int passes = 3; 
     for (int p = 0; p < passes; p++) {
         AssemblerState state;
-        uint16_t code_LC = origin;
+        uint16_t code_LC = res.has_model_directive ? 0x0000 : origin;
         uint16_t data_LC = res.has_model_directive ? 0x0000 : static_cast<uint16_t>(origin + prev_code_size);
 
         bool is_pass2 = (p == passes - 1);
@@ -838,7 +845,7 @@ AssemblyResult Assembler::assemble(const std::string& source, uint16_t origin) {
             uint16_t& LC = (state.current_seg == AssemblerState::Segment::DATA) ? data_LC : code_LC;
             std::vector<uint8_t>& current_bytes = (state.current_seg == AssemblerState::Segment::DATA) ? data_bytes : code_bytes;
 
-            if (!line.label.empty() && !is_pass2) {
+            if (!line.label.empty()) {
                 res.symbols[line.label] = LC;
                 if (line.mnemonic == "DB") res.sym_types[line.label] = 1;
                 else if (line.mnemonic == "DW") res.sym_types[line.label] = 2;
@@ -848,7 +855,14 @@ AssemblyResult Assembler::assemble(const std::string& source, uint16_t origin) {
             std::string m = line.mnemonic;
             if (m.empty()) continue;
             
-            if (m == ".MODEL") { res.has_model_directive = true; continue; }
+            if (m == ".MODEL") {
+                if (!line.operands.empty() && line.operands[0] == "SMALL") {
+                    res.has_model_directive = true;
+                } else if (!line.operands.empty() && line.operands[0] == "TINY") {
+                    res.has_model_directive = false;
+                }
+                continue; 
+            }
             if (m == ".STACK") {
                 if (!line.operands.empty()) {
                     bool ok = true;
@@ -888,7 +902,7 @@ AssemblyResult Assembler::assemble(const std::string& source, uint16_t origin) {
             LC += static_cast<uint16_t>(instr_bytes.size());
         }
         
-        prev_code_size = code_LC - origin;
+        prev_code_size = code_LC - (res.has_model_directive ? 0x0000 : origin);
         
         if (is_pass2) {
             res.machine_code = code_bytes;
