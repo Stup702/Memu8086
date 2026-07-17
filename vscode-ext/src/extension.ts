@@ -15,10 +15,6 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.debug.onDidReceiveDebugSessionCustomEvent(e => {
             if (e.event === 'updateDashboard') {
                 provider.updateData(e.body.regs, e.body.state, e.body.line, e.body.stackData, e.body.stackAddr, e.body.memoryData, e.body.memoryAddr, e.body.variables);
-                // Force focus back to our dashboard when VS Code tries to steal it for the native debug view
-                setTimeout(() => {
-                    vscode.commands.executeCommand('memu8086.dashboardView.focus');
-                }, 100);
             }
         })
     );
@@ -279,11 +275,26 @@ export class MemuDashboardProvider implements vscode.WebviewViewProvider {
                     }
                     const tooltip = \`Unsigned: \${regs[r]} \\nSigned: \${regs[r] > 32767 ? regs[r] - 65536 : regs[r]} \\nBinary: \${regs[r].toString(2).padStart(16, '0')}\`;
                     
-                    if (g.name === "Segment") {
+                    if (g.name === "General") {
+                        const high = val.substring(0, 2);
+                        const low = val.substring(2, 4);
+                        grid += \`<div class="reg-box" style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 6px;" title="\${tooltip}">
+                                     <span class="reg-name">\${r}</span>
+                                     <div style="display: grid; grid-template-columns: 35px 10px 20px; text-align: right;">
+                                         <div style="font-size: 10px; color: var(--vscode-descriptionForeground);">H</div>
+                                         <div style="font-size: 10px; color: var(--vscode-descriptionForeground); text-align: center;">|</div>
+                                         <div style="font-size: 10px; color: var(--vscode-descriptionForeground);">L</div>
+                                         
+                                         <div style="\${highlight}">0x\${high}</div>
+                                         <div style="text-align: center; opacity: 0.5; \${highlight}">|</div>
+                                         <div style="\${highlight}">\${low}</div>
+                                     </div>
+                                 </div>\`;
+                    } else if (g.name === "Segment") {
                         const addr = regs[r] * 16;
-                        grid += \`<div class="reg-box" style="cursor:pointer" onclick="viewMemory(\${addr})" title="\${tooltip}"><span class="reg-name">\${r}</span> <span style="\${highlight}">0x\${val}</span></div>\`;
+                        grid += \`<div class="reg-box" style="cursor:pointer; align-items: center;" onclick="viewMemory(\${addr})" title="\${tooltip}"><span class="reg-name">\${r}</span> <span style="\${highlight}">0x\${val}</span></div>\`;
                     } else {
-                        grid += \`<div class="reg-box" title="\${tooltip}"><span class="reg-name">\${r}</span> <span style="\${highlight}">0x\${val}</span></div>\`;
+                        grid += \`<div class="reg-box" style="align-items: center;" title="\${tooltip}"><span class="reg-name">\${r}</span> <span style="\${highlight}">0x\${val}</span></div>\`;
                     }
                 }
                 grid += '</div>';
