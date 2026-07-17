@@ -3,12 +3,12 @@
   "displayName": "MEMU8086",
   "description": "A modern Intel 8086 emulator and assembler.",
   "author": "Animesh Barua Mugdha",
-  "publisher": "stup702",
+  "publisher": "Stup702-AnimeshBarua",
   "repository": {
     "type": "git",
     "url": "https://github.com/Stup702/Memu8086"
   },
-  "version": "0.7.85",
+  "version": "0.7.91",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -17,6 +17,10 @@
     "Programming Languages"
   ],
   "main": "./out/extension.js",
+  "activationEvents": [
+    "onDebug",
+    "onCommand:memu8086.run"
+  ],
   "contributes": {
     "languages": [
       {

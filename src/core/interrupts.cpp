@@ -22,6 +22,7 @@ bool InterruptHandler::handle(uint8_t interrupt_number) {
     // Helper lambda to fetch a keypress blockingly
     auto wait_and_read_key = [&]() -> char {
         while (!has_input()) {
+            if (non_blocking) return '\0';
             std::this_thread::sleep_for(std::chrono::milliseconds(2));
         }
         std::lock_guard<std::mutex> lock(input_mutex);
@@ -140,7 +141,12 @@ bool InterruptHandler::handle(uint8_t interrupt_number) {
                 case 0x08: // Read char no echo
                     {
                         char c = wait_and_read_key();
-                        if (c == '\0') break;
+                        if (c == '\0') {
+                            cpu.regs.IP -= 2;
+                            interrupt_suspended = true;
+                            break;
+                        }
+                        interrupt_suspended = false;
                         cpu.regs.AL() = c;
                     }
                     break;
@@ -157,16 +163,23 @@ bool InterruptHandler::handle(uint8_t interrupt_number) {
                 case 0x0A: { // Buffered input
                     uint32_t addr = cpu.ds_addr(cpu.regs.DX);
                     uint8_t max_chars = cpu.mem.read8(addr); // DOS standard: length max is at DX+0
-                    uint8_t count = 0;
+                    uint8_t count = cpu.mem.read8(addr + 1);
                     
                     uint8_t writable = (max_chars > 0) ? (max_chars - 1) : 0;
+                    bool finished = false;
                     while (true) {
                         char c = wait_and_read_key();
-                        if (c == '\0') break; // Sentinel check: abort if emulator was stopped
+                        if (c == '\0') {
+                             cpu.regs.IP -= 2;
+                             interrupt_suspended = true;
+                             break;
+                        }
+                        interrupt_suspended = false;
                         if (c == '\r' || c == '\n') {
                             cpu.mem.write8(addr + 2 + count, '\r'); // DOS standard: CR is placed in buffer
                             io.write_char('\r');
                             io.write_char('\n');
+                            finished = true;
                             break;
                         } else if (c == '\b' || c == 0x7F) { // Handle backspace
                             if (count > 0) {

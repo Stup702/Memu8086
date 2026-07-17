@@ -45,6 +45,8 @@ public:
 
     std::vector<std::string> warnings;
     bool halted{false}; // Set by INT 20h and INT 21h AH=4Ch
+    bool non_blocking{false};
+    bool interrupt_suspended{false};
 
 private:
     CPU& cpu;

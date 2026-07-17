@@ -137,6 +137,21 @@ export class MemuDebugSession extends LoggingDebugSession {
         }
     }
 
+    protected pauseRequest(response: DebugProtocol.PauseResponse, args: DebugProtocol.PauseArguments): void {
+        this._runLoopActive = false;
+        this.sendResponse(response);
+        this.sendUpdateDashboardEvent();
+        this.sendEvent(new StoppedEvent('pause', MemuDebugSession.threadID));
+    }
+
+    protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments): void {
+        this._runLoopActive = false;
+        if (this._emu) {
+            this.sendEvent(new TerminatedEvent());
+        }
+        this.sendResponse(response);
+    }
+
     protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
         if (this._emu) {
             this._emu.step();
@@ -152,23 +167,66 @@ export class MemuDebugSession extends LoggingDebugSession {
         this.nextRequest(response, args); // Same as next for now
     }
 
+    private _runLoopActive = false;
+    
+    private runLoop() {
+        if (!this._emu || !this._runLoopActive) return;
+        
+        this._emu.run();
+        const out = this._emu.get_output();
+        if (out) this.sendEvent(new OutputEvent(out, 'console'));
+        this.sendUpdateDashboardEvent();
+        
+        if (this._emu.is_halted()) {
+            this._runLoopActive = false;
+            this.sendEvent(new TerminatedEvent());
+        } else if (this._emu.is_interrupt_suspended()) {
+            // Suspended waiting for input, yield to JS event loop and poll again
+            setTimeout(() => this.runLoop(), 50);
+        } else {
+            // Hit a breakpoint or error
+            this._runLoopActive = false;
+            this.sendEvent(new StoppedEvent('breakpoint', MemuDebugSession.threadID));
+        }
+    }
+
     protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
         this.sendResponse(response);
         
         if (this._emu) {
-            this._emu.run(); // Calls our updated WasmEmulator::run() which stops on breakpoints
-            const out = this._emu.get_output();
-            if (out) this.sendEvent(new OutputEvent(out, 'console'));
-            
-            this.sendUpdateDashboardEvent();
-            if (this._emu.is_halted()) {
-                this.sendEvent(new TerminatedEvent());
-            } else {
-                this.sendEvent(new StoppedEvent('breakpoint', MemuDebugSession.threadID));
+            if (!this._runLoopActive) {
+                this._runLoopActive = true;
+                this.runLoop();
             }
         } else {
             this.sendEvent(new TerminatedEvent());
         }
+    }
+
+    protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
+        if (args.context === 'repl' && this._emu) {
+            // Send each character from the debug console to the emulator's DOS input buffer
+            for (let i = 0; i < args.expression.length; i++) {
+                this._emu.send_input(args.expression.charCodeAt(i));
+            }
+            // Add a carriage return as expected by DOS int 21h ah=0Ah
+            this._emu.send_input(0x0D);
+            
+            // Check if this input generated any immediate echo output
+            const out = this._emu.get_output();
+            if (out) this.sendEvent(new OutputEvent(out, 'console'));
+            
+            response.body = {
+                result: '',
+                variablesReference: 0
+            };
+        } else {
+            response.body = {
+                result: 'Evaluate only supported for console input',
+                variablesReference: 0
+            };
+        }
+        this.sendResponse(response);
     }
 
     protected threadsRequest(response: DebugProtocol.ThreadsResponse): void {

@@ -87,6 +87,9 @@ public:
 
     // === INPUT ===
     void send_key(char c);
+    
+    bool is_interrupt_suspended() const;
+    void set_non_blocking_io(bool v);
 
 private:
     CPU                                 cpu_;

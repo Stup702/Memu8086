@@ -47,9 +47,8 @@ bool Emulator::load_com(const std::vector<uint8_t>& machine_code, uint16_t load_
     irq_ = std::make_unique<InterruptHandler>(cpu_, *io_device_);
     
     for (size_t i = 0; i < machine_code.size(); ++i) {
-        if (load_offset + i < MEMORY_SIZE) {
-            cpu_.mem.write8(load_offset + i, machine_code[i]);
-        }
+        uint16_t offset = static_cast<uint16_t>(load_offset + i);
+        cpu_.mem.write8(core::Memory::segment_offset(cpu_.regs.CS, offset), machine_code[i]);
     }
     
     cpu_.regs.CS = 0x0000;
@@ -74,18 +73,15 @@ bool Emulator::load_from_assembly(const std::string& source) {
             
             // Code loaded at 0x0710 (Segment 0710)
             for (size_t i = 0; i < last_asm_.code_bytes.size(); ++i) {
-                if (0x07100 + i < MEMORY_SIZE) {
-                    cpu_.mem.write8(0x07100 + i, last_asm_.code_bytes[i]);
-                }
+                uint16_t offset = static_cast<uint16_t>(i);
+                cpu_.mem.write8(core::Memory::segment_offset(0x0710, offset), last_asm_.code_bytes[i]);
             }
             
             // Data loaded at dynamically calculated segment
             uint16_t data_segment = 0x0710 + ((last_asm_.code_bytes.size() + 15) / 16);
             for (size_t i = 0; i < last_asm_.data_bytes.size(); ++i) {
-                uint32_t addr = (data_segment * 16) + i;
-                if (addr < MEMORY_SIZE) {
-                    cpu_.mem.write8(addr, last_asm_.data_bytes[i]);
-                }
+                uint16_t offset = static_cast<uint16_t>(i);
+                cpu_.mem.write8(core::Memory::segment_offset(data_segment, offset), last_asm_.data_bytes[i]);
             }
 
             // Set Registers
@@ -377,7 +373,18 @@ void Emulator::toggle_flag(int flag_idx) {
 EmulatorState Emulator::state() const { return state_.load(); }
 void Emulator::set_speed_hz(uint32_t hz) { speed_hz_ = hz; }
 uint32_t Emulator::get_speed_hz() const { return speed_hz_.load(); }
-void Emulator::send_key(char c) { irq_->enqueue_key(c); }
+void Emulator::send_key(char c) {
+    if (irq_) irq_->enqueue_key(c);
+}
+
+bool Emulator::is_interrupt_suspended() const {
+    return irq_ && irq_->interrupt_suspended;
+}
+
+void Emulator::set_non_blocking_io(bool v) {
+    if (irq_) irq_->non_blocking = v;
+}
+
 const std::array<uint8_t, MEMORY_SIZE>& Emulator::memory_view() const { return cpu_.mem.get_data(); }
 
 void Emulator::write_memory(uint32_t addr, uint8_t val) {

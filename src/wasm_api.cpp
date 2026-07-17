@@ -13,7 +13,9 @@ private:
     core::Emulator emulator;
 
 public:
-    WasmEmulator() {}
+    WasmEmulator() {
+        emulator.set_non_blocking_io(true);
+    }
 
     bool assemble(const std::string& source) {
         return emulator.load_from_assembly(source);
@@ -22,6 +24,7 @@ public:
     void reset() {
         emulator.stop();
         emulator.load_from_assembly(""); // clear
+        emulator.set_non_blocking_io(true);
     }
 
     void step() {
@@ -40,6 +43,9 @@ public:
         while (emulator.state() != core::EmulatorState::HALTED && 
                emulator.state() != core::EmulatorState::ERROR) {
                    
+            if (emulator.is_interrupt_suspended()) {
+                break; // Yield to JS event loop
+            }
             if (emulator.has_breakpoint(emulator.snapshot().regs.IP)) {
                 break;
             }
@@ -91,6 +97,10 @@ public:
     
     bool is_halted() const {
         return emulator.state() == core::EmulatorState::HALTED;
+    }
+
+    bool is_interrupt_suspended() const {
+        return emulator.is_interrupt_suspended();
     }
 
     int get_current_line() const {
@@ -193,6 +203,7 @@ EMSCRIPTEN_BINDINGS(memu8086_module) {
         .function("step", &WasmEmulator::step)
         .function("run", &WasmEmulator::run)
         .function("is_halted", &WasmEmulator::is_halted)
+        .function("is_interrupt_suspended", &WasmEmulator::is_interrupt_suspended)
         .function("get_current_line", &WasmEmulator::get_current_line)
         .function("get_output", &WasmEmulator::get_output)
         .function("get_errors", &WasmEmulator::get_errors)
