@@ -8,7 +8,7 @@
     "type": "git",
     "url": "https://github.com/Stup702/Memu8086"
   },
-  "version": "0.7.91",
+  "version": "0.7.92",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -76,6 +76,10 @@
         "command": "memu8086.chippingIn",
         "title": "MEMU8086: Chipping In",
         "icon": "$(play)"
+      },
+      {
+        "command": "memu8086.dashboardView.focus",
+        "title": "Focus on Dashboard View"
       }
     ],
     "menus": {
