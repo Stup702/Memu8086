@@ -20,6 +20,16 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     context.subscriptions.push(
+        vscode.debug.onDidStartDebugSession(session => {
+            if (session.type === 'memu8086') {
+                setTimeout(() => {
+                    vscode.commands.executeCommand('memu8086.dashboardView.focus');
+                }, 300); // Small delay to let VS Code switch to its native debug view first, then steal it back
+            }
+        })
+    );
+
+    context.subscriptions.push(
         vscode.workspace.onDidSaveTextDocument(doc => {
             if (doc.languageId === 'asm' || doc.fileName.endsWith('.asm')) {
                 if (vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'memu8086') {
