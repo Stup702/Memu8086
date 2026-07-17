@@ -44,7 +44,9 @@ bool Emulator::load_com(const std::vector<uint8_t>& machine_code, uint16_t load_
     std::lock_guard<std::mutex> lock(cpu_mutex_);
     cpu_.reset();
     executor_->reset();
+    bool was_non_blocking = irq_ ? irq_->non_blocking : false;
     irq_ = std::make_unique<InterruptHandler>(cpu_, *io_device_);
+    irq_->non_blocking = was_non_blocking;
     
     for (size_t i = 0; i < machine_code.size(); ++i) {
         uint16_t offset = static_cast<uint16_t>(load_offset + i);
@@ -69,7 +71,9 @@ bool Emulator::load_from_assembly(const std::string& source) {
             std::lock_guard<std::mutex> lock(cpu_mutex_);
             cpu_.reset();
             executor_->reset();
+            bool was_non_blocking = irq_ ? irq_->non_blocking : false;
             irq_ = std::make_unique<InterruptHandler>(cpu_, *io_device_);
+            irq_->non_blocking = was_non_blocking;
             
             // Code loaded at 0x0710 (Segment 0710)
             for (size_t i = 0; i < last_asm_.code_bytes.size(); ++i) {
@@ -131,7 +135,9 @@ void Emulator::stop() {
     std::lock_guard<std::mutex> lock(cpu_mutex_);
     cpu_.reset();
     executor_->reset();
+    bool was_non_blocking = irq_ ? irq_->non_blocking : false;
     irq_ = std::make_unique<InterruptHandler>(cpu_, *io_device_);
+    irq_->non_blocking = was_non_blocking;
     {
         std::lock_guard<std::mutex> out_lock(output_mutex_);
         output_buffer_.clear();
