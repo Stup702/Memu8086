@@ -113,7 +113,12 @@ bool InterruptHandler::handle(uint8_t interrupt_number) {
             switch (ah) {
                 case 0x01: { // Read character with echo
                     char c = wait_and_read_key();
-                    if (c == '\0') break;
+                    if (c == '\0') {
+                        cpu.regs.IP -= 2;
+                        interrupt_suspended = true;
+                        break;
+                    }
+                    interrupt_suspended = false;
                     cpu.regs.AL() = c;
                     io.write_char(c);
                     break;
