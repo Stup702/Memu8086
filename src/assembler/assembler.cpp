@@ -122,31 +122,35 @@ int evaluate_expression(std::string e, const AssemblyResult& res, bool& ok) {
 
     // Process operators in reverse precedence order (lowest first: +/- then */)
     // so that we split on the last +/- first (correct left-to-right evaluation)
-    size_t plus = e.find_last_of('+');
+    size_t plus  = e.find_last_of('+');
     size_t minus = e.find_last_of('-');
-    // Find last * or / (higher precedence, split after +/- resolved)
-    size_t mul = e.find_last_of('*');
-    size_t div = e.find_last_of('/');
+    size_t mul   = e.find_last_of('*');
+    size_t div   = e.find_last_of('/');
 
-    // Split on last + or - (lowest precedence)
-    if (plus != std::string::npos && (minus == std::string::npos || plus > minus) &&
-        (mul == std::string::npos || plus > mul) && (div == std::string::npos || plus > div)) {
-        return evaluate_expression(e.substr(0, plus), res, ok) + evaluate_expression(e.substr(plus + 1), res, ok);
+    // Determine the rightmost operator that should be the outermost split.
+    // Precedence: +/- is LOWER than */, so we split on the rightmost +/- that
+    // appears AFTER any */ (making */ the inner operation).
+    size_t rightmost_muldiv = (mul != std::string::npos && (div == std::string::npos || mul > div)) ? mul : div;
+
+    size_t outer_plus  = (plus  != std::string::npos && plus  > 0 && (rightmost_muldiv == std::string::npos || plus  > rightmost_muldiv)) ? plus  : std::string::npos;
+    size_t outer_minus = (minus != std::string::npos && minus > 0 && (rightmost_muldiv == std::string::npos || minus > rightmost_muldiv)) ? minus : std::string::npos;
+
+    if (outer_plus != std::string::npos && (outer_minus == std::string::npos || outer_plus > outer_minus)) {
+        return evaluate_expression(e.substr(0, outer_plus), res, ok) + evaluate_expression(e.substr(outer_plus + 1), res, ok);
     }
-    if (minus != std::string::npos && (plus == std::string::npos || minus > plus) &&
-        (mul == std::string::npos || minus > mul) && (div == std::string::npos || minus > div) &&
-        minus > 0) { // guard against leading minus (negative literal)
-        return evaluate_expression(e.substr(0, minus), res, ok) - evaluate_expression(e.substr(minus + 1), res, ok);
+    if (outer_minus != std::string::npos) {
+        return evaluate_expression(e.substr(0, outer_minus), res, ok) - evaluate_expression(e.substr(outer_minus + 1), res, ok);
     }
-    // Split on last * or /
+    // No outer +/- — split on rightmost */ for multiply/divide
     if (mul != std::string::npos && (div == std::string::npos || mul > div)) {
         return evaluate_expression(e.substr(0, mul), res, ok) * evaluate_expression(e.substr(mul + 1), res, ok);
     }
-    if (div != std::string::npos) {
+    if (div != std::string::npos && div > 0) {
         int rhs = evaluate_expression(e.substr(div + 1), res, ok);
         if (rhs == 0) { ok = false; return 0; }
         return evaluate_expression(e.substr(0, div), res, ok) / rhs;
     }
+
 
     if (e == "@DATA" || e == "@data") return res.symbols.count("@DATA") ? res.symbols.at("@DATA") : 0;
     if (e.substr(0, 7) == "LENGTH ") return res.sym_lengths.count(trim(e.substr(7))) ? res.sym_lengths.at(trim(e.substr(7))) : 1;

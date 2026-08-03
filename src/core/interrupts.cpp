@@ -91,11 +91,15 @@ bool InterruptHandler::handle(uint8_t interrupt_number) {
                 case 0x00: // Wait for keypress - returns ASCII in AL, scan code in AH
                     {
                         char c = wait_and_read_key();
-                        if (c == '\0') break;
+                        if (c == '\0') {
+                            // Non-blocking: no key available — suspend and retry
+                            cpu.regs.IP -= 2;
+                            interrupt_suspended = true;
+                            break;
+                        }
+                        interrupt_suspended = false;
                         cpu.regs.AL() = static_cast<uint8_t>(c);
-                        // Provide a basic scan code mapping for common keys
-                        // Real scan codes need a full table; provide approximation
-                        cpu.regs.AH() = static_cast<uint8_t>(c); // simplified: use ASCII as scan code
+                        cpu.regs.AH() = static_cast<uint8_t>(c); // simplified scan code approximation
                     }
                     break;
                 case 0x01: // Check keystroke buffer - ZF=1 if no key, ZF=0 if key available
