@@ -447,6 +447,21 @@ void encode_instruction(const std::string& label, const std::string& mnemonic, c
     if (is_pass2 && ops.size() > 2) {
         res.success = false; res.errors.push_back({line_num, "Too many operands for " + mnemonic}); return;
     }
+
+    // Strict type checking for mismatched operand sizes
+    if (is_pass2 && ops.size() == 2) {
+        if (mnemonic != "SHL" && mnemonic != "SHR" && mnemonic != "SAL" && mnemonic != "SAR" && 
+            mnemonic != "ROL" && mnemonic != "ROR" && mnemonic != "RCL" && mnemonic != "RCR" &&
+            mnemonic != "OUT" && mnemonic != "IN" && mnemonic != "LEA" && mnemonic != "LDS" && mnemonic != "LES") {
+            
+            if (op1.type == Operand::REG8 && op2.type == Operand::MEM && op2.explicit_size && op2.word) { res.success = false; res.errors.push_back({line_num, "Operand types do not match"}); return; }
+            if (op1.type == Operand::REG16 && op2.type == Operand::MEM && op2.explicit_size && !op2.word) { res.success = false; res.errors.push_back({line_num, "Operand types do not match"}); return; }
+            if (op1.type == Operand::MEM && op2.type == Operand::REG8 && op1.explicit_size && op1.word) { res.success = false; res.errors.push_back({line_num, "Operand types do not match"}); return; }
+            if (op1.type == Operand::MEM && op2.type == Operand::REG16 && op1.explicit_size && !op1.word) { res.success = false; res.errors.push_back({line_num, "Operand types do not match"}); return; }
+            if (op1.type == Operand::REG8 && op2.type == Operand::REG16) { res.success = false; res.errors.push_back({line_num, "Operand types do not match"}); return; }
+            if (op1.type == Operand::REG16 && op2.type == Operand::REG8) { res.success = false; res.errors.push_back({line_num, "Operand types do not match"}); return; }
+        }
+    }
     bool is_1op = (mnemonic == "INC" || mnemonic == "DEC" || grp3_ops.count(mnemonic) || mnemonic == "PUSH" || mnemonic == "POP" || jcc_ops.count(mnemonic) || mnemonic == "JMP" || mnemonic == "CALL" || mnemonic == "INT");
     if (is_pass2 && is_1op && ops.size() != 1) {
         res.success = false; res.errors.push_back({line_num, mnemonic + " requires exactly 1 operand"}); return;
