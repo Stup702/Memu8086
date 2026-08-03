@@ -54,6 +54,10 @@ private:
 
     std::deque<char> input_queue;
     mutable std::mutex input_mutex;
+
+    // Persistent buffer for INT 21h AH=0Ah (buffered input) across non-blocking yields
+    char input_line_buf[256]{};
+    uint8_t input_line_count{0};
 };
 
 } // namespace emu8086::core

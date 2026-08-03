@@ -46,7 +46,8 @@ static const std::map<std::string, uint8_t> one_byte_ops = {
     {"SCASB", 0xAE}, {"SCASW", 0xAF},
     {"REP", 0xF3}, {"REPE", 0xF3}, {"REPZ", 0xF3}, {"REPNE", 0xF2}, {"REPNZ", 0xF2},
     {"XLAT", 0xD7}, {"XLATB", 0xD7}, {"SAHF", 0x9E}, {"LAHF", 0x9F}, {"LOCK", 0xF0},
-    {"INTO", 0xCE}, {"WAIT", 0x9B}
+    {"INTO", 0xCE}, {"WAIT", 0x9B},
+    {"PUSHA", 0x60}, {"POPA", 0x61}  // 80186+ (supported by emu8086)
 };
 
 static const std::map<std::string, int> shift_ops = {
@@ -118,13 +119,33 @@ bool contains_register(const std::string& e, const std::string& reg) {
 int evaluate_expression(std::string e, const AssemblyResult& res, bool& ok) {
     e = trim(e);
     if (e.empty()) return 0;
+
+    // Process operators in reverse precedence order (lowest first: +/- then */)
+    // so that we split on the last +/- first (correct left-to-right evaluation)
     size_t plus = e.find_last_of('+');
     size_t minus = e.find_last_of('-');
-    if (plus != std::string::npos && (minus == std::string::npos || plus > minus)) {
-        return evaluate_expression(e.substr(0, plus), res, ok) + evaluate_expression(e.substr(plus+1), res, ok);
+    // Find last * or / (higher precedence, split after +/- resolved)
+    size_t mul = e.find_last_of('*');
+    size_t div = e.find_last_of('/');
+
+    // Split on last + or - (lowest precedence)
+    if (plus != std::string::npos && (minus == std::string::npos || plus > minus) &&
+        (mul == std::string::npos || plus > mul) && (div == std::string::npos || plus > div)) {
+        return evaluate_expression(e.substr(0, plus), res, ok) + evaluate_expression(e.substr(plus + 1), res, ok);
     }
-    if (minus != std::string::npos && (plus == std::string::npos || minus > plus)) {
-        return evaluate_expression(e.substr(0, minus), res, ok) - evaluate_expression(e.substr(minus+1), res, ok);
+    if (minus != std::string::npos && (plus == std::string::npos || minus > plus) &&
+        (mul == std::string::npos || minus > mul) && (div == std::string::npos || minus > div) &&
+        minus > 0) { // guard against leading minus (negative literal)
+        return evaluate_expression(e.substr(0, minus), res, ok) - evaluate_expression(e.substr(minus + 1), res, ok);
+    }
+    // Split on last * or /
+    if (mul != std::string::npos && (div == std::string::npos || mul > div)) {
+        return evaluate_expression(e.substr(0, mul), res, ok) * evaluate_expression(e.substr(mul + 1), res, ok);
+    }
+    if (div != std::string::npos) {
+        int rhs = evaluate_expression(e.substr(div + 1), res, ok);
+        if (rhs == 0) { ok = false; return 0; }
+        return evaluate_expression(e.substr(0, div), res, ok) / rhs;
     }
 
     if (e == "@DATA" || e == "@data") return res.symbols.count("@DATA") ? res.symbols.at("@DATA") : 0;

@@ -478,18 +478,58 @@ ExecResult Executor::step() {
             cpu.regs.CS = cpu.mem.read16(cpu.ss_sp()); cpu.regs.SP += 2;
             cpu.regs.flags.from_word(cpu.mem.read16(cpu.ss_sp())); cpu.regs.SP += 2;
             break;
+        case 0x60: { // PUSHA (80186+, supported by emu8086)
+            uint16_t old_sp = cpu.regs.SP;
+            cpu.regs.SP -= 2; cpu.mem.write16(cpu.ss_sp(), cpu.regs.AX);
+            cpu.regs.SP -= 2; cpu.mem.write16(cpu.ss_sp(), cpu.regs.CX);
+            cpu.regs.SP -= 2; cpu.mem.write16(cpu.ss_sp(), cpu.regs.DX);
+            cpu.regs.SP -= 2; cpu.mem.write16(cpu.ss_sp(), cpu.regs.BX);
+            cpu.regs.SP -= 2; cpu.mem.write16(cpu.ss_sp(), old_sp);
+            cpu.regs.SP -= 2; cpu.mem.write16(cpu.ss_sp(), cpu.regs.BP);
+            cpu.regs.SP -= 2; cpu.mem.write16(cpu.ss_sp(), cpu.regs.SI);
+            cpu.regs.SP -= 2; cpu.mem.write16(cpu.ss_sp(), cpu.regs.DI);
+            break;
+        }
+        case 0x61: { // POPA (80186+, supported by emu8086)
+            cpu.regs.DI = cpu.mem.read16(cpu.ss_sp()); cpu.regs.SP += 2;
+            cpu.regs.SI = cpu.mem.read16(cpu.ss_sp()); cpu.regs.SP += 2;
+            cpu.regs.BP = cpu.mem.read16(cpu.ss_sp()); cpu.regs.SP += 2;
+            cpu.regs.SP += 2; // skip saved SP
+            cpu.regs.BX = cpu.mem.read16(cpu.ss_sp()); cpu.regs.SP += 2;
+            cpu.regs.DX = cpu.mem.read16(cpu.ss_sp()); cpu.regs.SP += 2;
+            cpu.regs.CX = cpu.mem.read16(cpu.ss_sp()); cpu.regs.SP += 2;
+            cpu.regs.AX = cpu.mem.read16(cpu.ss_sp()); cpu.regs.SP += 2;
+            break;
+        }
         case 0xD0: case 0xD1: case 0xD2: case 0xD3: { // Shift/Rotate
             bool word = op & 1, use_cl = op & 2; uint8_t modrm = fetch8(); auto rm = decode_modrm(modrm, word, seg_override);
             uint32_t v = read_rm(rm, word); uint8_t count = (use_cl ? cpu.regs.CL() : 1);
             if (count == 0) break;
             uint8_t op_type = rm.reg_idx; uint32_t msb = word ? 0x8000 : 0x80, mask = word ? 0xFFFF : 0xFF;
-            bool original_msb = (v & msb) != 0;
-            for (int i=0; i<count; i++) {
+            bool original_msb = (v & msb) != 0; // Save pre-rotation MSB for SHR OF
+            for (int i = 0; i < count; i++) {
+                bool top_bit, bot_bit, old_cf;
                 switch (op_type) {
-                    case 0: cpu.regs.flags.CF = (v & msb) != 0; v = ((v << 1) | (cpu.regs.flags.CF ? 1 : 0)) & mask; break; // ROL
-                    case 1: cpu.regs.flags.CF = (v & 1) != 0; v = ((v >> 1) | (cpu.regs.flags.CF ? msb : 0)) & mask; break; // ROR
-                    case 2: { bool o_cf = cpu.regs.flags.CF; cpu.regs.flags.CF = (v & msb) != 0; v = ((v << 1) | (o_cf ? 1 : 0)) & mask; break; } // RCL
-                    case 3: { bool o_cf = cpu.regs.flags.CF; cpu.regs.flags.CF = (v & 1) != 0; v = ((v >> 1) | (o_cf ? msb : 0)) & mask; break; } // RCR
+                    case 0: // ROL: CF = old MSB, shifted-in bit = old MSB
+                        top_bit = (v & msb) != 0;
+                        v = ((v << 1) | (top_bit ? 1 : 0)) & mask;
+                        cpu.regs.flags.CF = top_bit;
+                        break;
+                    case 1: // ROR: CF = old LSB, shifted-in bit = old LSB
+                        bot_bit = (v & 1) != 0;
+                        v = ((v >> 1) | (bot_bit ? msb : 0)) & mask;
+                        cpu.regs.flags.CF = bot_bit;
+                        break;
+                    case 2: // RCL: shifted-in = old CF, CF = old MSB
+                        old_cf = cpu.regs.flags.CF;
+                        cpu.regs.flags.CF = (v & msb) != 0;
+                        v = ((v << 1) | (old_cf ? 1 : 0)) & mask;
+                        break;
+                    case 3: // RCR: shifted-in = old CF, CF = old LSB
+                        old_cf = cpu.regs.flags.CF;
+                        cpu.regs.flags.CF = (v & 1) != 0;
+                        v = ((v >> 1) | (old_cf ? msb : 0)) & mask;
+                        break;
                     case 4: case 6: cpu.regs.flags.CF = (v & msb) != 0; v = (v << 1) & mask; break; // SHL/SAL
                     case 5: cpu.regs.flags.CF = (v & 1) != 0; v = (v >> 1) & mask; break; // SHR
                     case 7: { bool sign = (v & msb) != 0; cpu.regs.flags.CF = (v & 1) != 0; v = ((v >> 1) | (sign ? msb : 0)) & mask; break; } // SAR
@@ -501,9 +541,19 @@ ExecResult Executor::step() {
                 cpu.regs.flags.PF = cpu.calc_parity(static_cast<uint8_t>(v & 0xFF));
             }
             if (count == 1) {
-                if (op_type == 0 || op_type == 2 || op_type == 4 || op_type == 6) cpu.regs.flags.OF = cpu.regs.flags.CF ^ ((v & msb) != 0);
-                else if (op_type == 1 || op_type == 3) cpu.regs.flags.OF = ((v & msb) != 0) ^ (((v << 1) & msb) != 0);
+                // ROL OF: new MSB changed from old (CF = old MSB, so OF = CF XOR new MSB)
+                if (op_type == 0) cpu.regs.flags.OF = cpu.regs.flags.CF ^ ((v & msb) != 0);
+                // ROR OF: top two bits of result differ
+                else if (op_type == 1) cpu.regs.flags.OF = ((v & msb) != 0) ^ (((v >> (word ? 14 : 6)) & 1) != 0);
+                // RCL OF: CF (=old MSB) XOR new MSB
+                else if (op_type == 2) cpu.regs.flags.OF = cpu.regs.flags.CF ^ ((v & msb) != 0);
+                // RCR OF: top two bits of result differ
+                else if (op_type == 3) cpu.regs.flags.OF = ((v & msb) != 0) ^ (((v >> (word ? 14 : 6)) & 1) != 0);
+                // SHL/SAL OF: CF (=original MSB) XOR new MSB
+                else if (op_type == 4 || op_type == 6) cpu.regs.flags.OF = cpu.regs.flags.CF ^ ((v & msb) != 0);
+                // SHR OF: set if original MSB was 1 (sign changed)
                 else if (op_type == 5) cpu.regs.flags.OF = original_msb;
+                // SAR OF: always 0
                 else if (op_type == 7) cpu.regs.flags.OF = false;
             }
             write_rm(rm, word, v);
