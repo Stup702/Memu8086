@@ -1,0 +1,9 @@
+MOV DL, '-'
+MOV AL, '+'
+MOV BL, '*'
+MOV CL, '/'
+HLT
+; EXPECT DL=2Dh
+; EXPECT AL=2Bh
+; EXPECT BL=2Ah
+; EXPECT CL=2Fh
