@@ -66,6 +66,7 @@ export class MemuDebugSession extends LoggingDebugSession {
             
             if (!success) {
                 const errs = this._emu.get_errors();
+                this.sendEvent(new Event('assemblyError', { errors: errs }));
                 this.sendEvent(new OutputEvent(`Assembly failed!\n${errs}`, 'stderr'));
                 this.sendResponse(response);
                 this.sendEvent(new TerminatedEvent());

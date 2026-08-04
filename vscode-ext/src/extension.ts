@@ -12,9 +12,14 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     context.subscriptions.push(
-        vscode.debug.onDidReceiveDebugSessionCustomEvent(e => {
+        vscode.debug.onDidReceiveDebugSessionCustomEvent(async e => {
             if (e.event === 'updateDashboard') {
                 provider.updateData(e.body.regs, e.body.state, e.body.line, e.body.stackData, e.body.stackAddr, e.body.memoryData, e.body.memoryAddr, e.body.variables);
+            } else if (e.event === 'assemblyError') {
+                const action = await vscode.window.showErrorMessage('Assembly failed! Check the debug console for details.', 'View Output');
+                if (action === 'View Output') {
+                    vscode.commands.executeCommand('workbench.panel.repl.view.focus');
+                }
             }
         })
     );
@@ -283,9 +288,17 @@ export class MemuDashboardProvider implements vscode.WebviewViewProvider {
                     if (lastRegs && lastRegs[r] !== regs[r]) {
                         highlight = 'color: #d7ba7d; text-shadow: 0 0 5px rgba(215,186,125,0.5);';
                     }
-                    const tooltip = \`Unsigned: \${regs[r]} \\nSigned: \${regs[r] > 32767 ? regs[r] - 65536 : regs[r]} \\nBinary: \${regs[r].toString(2).padStart(16, '0')}\`;
+                    let tooltip = \`Unsigned: \${regs[r]} \\nSigned: \${regs[r] > 32767 ? regs[r] - 65536 : regs[r]} \\nBinary: \${regs[r].toString(2).padStart(16, '0')}\`;
                     
                     if (g.name === "General") {
+                        const highVal = (regs[r] >> 8) & 0xFF;
+                        const lowVal = regs[r] & 0xFF;
+                        const highSigned = highVal > 127 ? highVal - 256 : highVal;
+                        const lowSigned = lowVal > 127 ? lowVal - 256 : lowVal;
+                        
+                        tooltip += \`\\n\\nHigh (\${r[0]}H):\\n  Unsigned: \${highVal}\\n  Signed: \${highSigned}\\n  Binary: \${highVal.toString(2).padStart(8, '0')}\`;
+                        tooltip += \`\\n\\nLow (\${r[0]}L):\\n  Unsigned: \${lowVal}\\n  Signed: \${lowSigned}\\n  Binary: \${lowVal.toString(2).padStart(8, '0')}\`;
+                        
                         const high = val.substring(0, 2);
                         const low = val.substring(2, 4);
                         grid += \`<div class="reg-box" style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 6px;" title="\${tooltip}">

@@ -4,6 +4,7 @@
 namespace emu8086::core {
 
 static uint16_t s_target_cs = 0xFFFF;
+static uint16_t s_target_sp  = 0xFFFF; // SP guard for step-over run_to
 
 // --- Internal IODevice Implementation ---
 class StringIODevice : public IODevice {
@@ -115,6 +116,7 @@ void Emulator::start() {
     state_ = EmulatorState::RUNNING;
     run_target_ip_ = 0xFFFF;
     s_target_cs = 0xFFFF;
+    s_target_sp  = 0xFFFF;
     exec_thread_ = std::thread(&Emulator::exec_loop_, this);
 }
 
@@ -231,6 +233,7 @@ void Emulator::step_over() {
         if (cpu_.regs.SP < prev_sp) { // Instruction pushed return offset
             uint16_t ret_addr = cpu_.mem.read16(cpu_.ss_sp());
             s_target_cs = expected_ret_cs;
+            s_target_sp  = prev_sp; // only fire target when SP is back to call-site level
             lock.unlock();
             run_to(ret_addr);
             return;
@@ -312,10 +315,13 @@ void Emulator::exec_loop_() {
             if (res == ExecResult::ILLEGAL_OPCODE) { state_ = EmulatorState::ERROR; break; }
 
         if (res == ExecResult::BREAKPOINT || breakpoints_.count(cpu_.regs.IP)) { state_ = EmulatorState::PAUSED; break; }
-        if (run_target_ip_ != 0xFFFF && cpu_.regs.IP == run_target_ip_ && (s_target_cs == 0xFFFF || cpu_.regs.CS == s_target_cs)) {
+        if (run_target_ip_ != 0xFFFF && cpu_.regs.IP == run_target_ip_
+            && (s_target_cs == 0xFFFF || cpu_.regs.CS == s_target_cs)
+            && (s_target_sp  == 0xFFFF || cpu_.regs.SP >= s_target_sp)) {
             state_ = EmulatorState::PAUSED;
             run_target_ip_ = 0xFFFF; // single-shot expiration
             s_target_cs = 0xFFFF;
+            s_target_sp  = 0xFFFF;
             break;
         }
         
