@@ -120,12 +120,23 @@ int evaluate_expression(std::string e, const AssemblyResult& res, bool& ok) {
     e = trim(e);
     if (e.empty()) return 0;
 
-    // Process operators in reverse precedence order (lowest first: +/- then */)
-    // so that we split on the last +/- first (correct left-to-right evaluation)
-    size_t plus  = e.find_last_of('+');
-    size_t minus = e.find_last_of('-');
-    size_t mul   = e.find_last_of('*');
-    size_t div   = e.find_last_of('/');
+    size_t plus = std::string::npos, minus = std::string::npos, mul = std::string::npos, div = std::string::npos;
+    bool in_quote = false;
+    char quote_char = 0;
+    for (int i = (int)e.length() - 1; i >= 0; --i) {
+        char c = e[i];
+        if (c == '\'' || c == '"') {
+            if (!in_quote) { in_quote = true; quote_char = c; }
+            else if (quote_char == c) { in_quote = false; quote_char = 0; }
+            continue;
+        }
+        if (in_quote) continue;
+        
+        if (c == '+' && plus == std::string::npos) plus = i;
+        else if (c == '-' && minus == std::string::npos) minus = i;
+        else if (c == '*' && mul == std::string::npos) mul = i;
+        else if (c == '/' && div == std::string::npos) div = i;
+    }
 
     // Determine the rightmost operator that should be the outermost split.
     // Precedence: +/- is LOWER than */, so we split on the rightmost +/- that
