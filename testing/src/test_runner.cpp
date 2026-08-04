@@ -134,7 +134,8 @@ TestResult TestRunner::run_file(const std::string& file_path) {
 
     if (emu.state() == emu8086::core::EmulatorState::ERROR) {
         result.success = false;
-        result.errors.push_back("Emulator entered ERROR state.");
+        auto snap2 = emu.snapshot();
+        result.errors.push_back(fmt::format("Emulator entered ERROR state at CS:IP={:04X}:{:04X}", snap2.regs.CS, snap2.regs.IP));
     } else if (cycles >= MAX_CYCLES) {
         result.success = false;
         result.errors.push_back("Maximum cycle count exceeded (infinite loop?).");

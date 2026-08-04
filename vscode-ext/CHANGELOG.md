@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.8.0]
+* **Assembler Forward Reference Fix:** Resolved an issue where `CALL` instruction targets for forward-referenced procedures were calculated incorrectly in `.MODEL SMALL`.
+* **Assembler Label Fix:** Fixed a bug where `ENDP` directives would incorrectly overwrite the starting address of their corresponding procedure label.
+* **Emulator Run-To/Step-Over Bug:** Implemented a stack-pointer depth guard to prevent "Step Over" or "Continue" from pausing prematurely inside subroutines.
+
 ## [0.7.99]
 * **VS Code UI — Assembly Errors:** Surfaced assembly compilation errors so they trigger a visible VS Code warning popup, rather than failing silently.
 * **VS Code UI — High/Low Register Decimals:** Enhanced the General Registers tooltips to independently display the Unsigned, Signed, and Binary values of their High (AH) and Low (AL) 8-bit components.

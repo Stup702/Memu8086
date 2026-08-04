@@ -886,10 +886,14 @@ AssemblyResult Assembler::assemble(const std::string& source, uint16_t origin) {
             std::vector<uint8_t>& current_bytes = (state.current_seg == AssemblerState::Segment::DATA) ? data_bytes : code_bytes;
 
             if (!line.label.empty()) {
-                res.symbols[line.label] = LC;
-                if (line.mnemonic == "DB") res.sym_types[line.label] = 1;
-                else if (line.mnemonic == "DW") res.sym_types[line.label] = 2;
-                else if (line.mnemonic == "DD") res.sym_types[line.label] = 4;
+                // Don't overwrite a PROC label address with the ENDP address at the end of the procedure.
+                bool is_endp = (line.mnemonic == "ENDP");
+                if (!is_endp) {
+                    res.symbols[line.label] = LC;
+                    if (line.mnemonic == "DB") res.sym_types[line.label] = 1;
+                    else if (line.mnemonic == "DW") res.sym_types[line.label] = 2;
+                    else if (line.mnemonic == "DD") res.sym_types[line.label] = 4;
+                }
             }
             
             std::string m = line.mnemonic;
