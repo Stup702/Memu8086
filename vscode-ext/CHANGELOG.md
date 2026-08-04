@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.8.1]
+* **Assembler Expressions:** Fixed a bug in the mathematical expression parser where single and double-quoted character literals containing math operators (e.g., `'-'`) would incorrectly trigger a syntax error.
+* **VS Code UI:** Broadened the "Chipping In" button visibility conditions so that it works reliably on macOS and older versions of VS Code.
+
 ## [0.8.0]
 * **Assembler Forward Reference Fix:** Resolved an issue where `CALL` instruction targets for forward-referenced procedures were calculated incorrectly in `.MODEL SMALL`.
 * **Assembler Label Fix:** Fixed a bug where `ENDP` directives would incorrectly overwrite the starting address of their corresponding procedure label.
