@@ -5,6 +5,7 @@
 
 .MODEL TINY
 .CODE
+NOP
 ORG 0FFFDh
 
     ; FFFD: MOV AX, 1234h (3 bytes: B8 34 12)

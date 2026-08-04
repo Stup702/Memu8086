@@ -8,7 +8,7 @@
     "type": "git",
     "url": "https://github.com/Stup702/Memu8086"
   },
-  "version": "0.7.98",
+  "version": "0.7.99",
   "icon": "appicon.png",
   "engines": {
     "vscode": "^1.80.0"
@@ -93,7 +93,8 @@
       "editor/title": [
         {
           "command": "memu8086.chippingIn",
-          "group": "navigation@1"
+          "group": "navigation@1",
+          "when": "editorLangId == asm"
         }
       ]
     }
