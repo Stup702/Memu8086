@@ -94,7 +94,7 @@
         {
           "command": "memu8086.chippingIn",
           "group": "navigation@1",
-          "when": "editorLangId == asm"
+          "when": "editorLangId == asm || editorLangId == assembly || resourceExtname == .asm"
         }
       ]
     }
